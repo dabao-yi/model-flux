@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+server/node_modules
+admin/node_modules
+dist
+server/dist
+admin/dist
+admin/tsconfig.tsbuildinfo
+.env
+*.log
+.DS_Store
+.model-flux-key
+.sub2api-model-flux-key

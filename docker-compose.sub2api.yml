@@ -1,0 +1,21 @@
+# Optional override for deployments where a Dockerized sub2api should call ModelFlux
+# by service name: http://model-flux:19090/v1.
+#
+# Usage when the sub2api compose network already exists:
+#   docker compose -f docker-compose.yml -f docker-compose.sub2api.yml up -d
+#
+# The base docker-compose.yml stays standalone. This override only adds ModelFlux
+# to the external sub2api network so containers in that network can resolve the
+# `model-flux` service name.
+services:
+  model-flux:
+    networks:
+      default:
+      sub2api-network:
+        aliases:
+          - model-flux
+
+networks:
+  sub2api-network:
+    external: true
+    name: ${SUB2API_DOCKER_NETWORK:-sub2api-deploy_sub2api-network}

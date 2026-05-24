@@ -1,0 +1,33 @@
+{
+  "name": "model-flux",
+  "version": "2.0.0",
+  "private": true,
+  "description": "ModelFlux: health-aware OpenAI-compatible model traffic router with key-pool scheduling and failover",
+  "workspaces": [
+    "server",
+    "admin"
+  ],
+  "scripts": {
+    "start": "npm run start -w server",
+    "dev": "npm run dev -w server",
+    "dev:admin": "npm run dev -w admin",
+    "build": "npm run build -w admin && npm run build -w server",
+    "test": "npm run test -w server",
+    "smoke": "./scripts/smoke.sh",
+    "start:prod": "node --env-file=.env server/dist/index.js",
+    "check": "npm run test && npm run build"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "openai-compatible",
+    "model-router",
+    "llm-gateway",
+    "responses-api",
+    "chat-completions",
+    "key-pool",
+    "failover"
+  ]
+}

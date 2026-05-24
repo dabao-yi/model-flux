@@ -1,0 +1,21 @@
+services:
+  model-flux:
+    build:
+      context: .
+    image: model-flux:local
+    container_name: model-flux
+    environment:
+      NODE_ENV: production
+      CONFIG_ENV_PATH: /app/.env
+    ports:
+      - "127.0.0.1:${HOST_PORT:-19090}:${PROXY_PORT:-19090}"
+    volumes:
+      - ./.env:/app/.env
+      - ./proxy-models.example.json:/app/proxy-models.example.json:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "const p=process.env.PROXY_PORT||'19090'; fetch('http://127.0.0.1:'+p+'/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

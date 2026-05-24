@@ -1,0 +1,14 @@
+node_modules/
+dist/
+server/dist/
+admin/dist/
+.env
+*.log
+*.tsbuildinfo
+.DS_Store
+.model-flux-key
+.sub2api-model-flux-key
+.claude/
+*.bak-*
+
+.idea/
