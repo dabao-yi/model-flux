@@ -7,6 +7,7 @@ export interface ProviderKeyRow {
   masked?: string;
   enabled?: boolean;
   base_url?: string;
+  priority?: number;
   scheduler?: ProviderAccountRuntime;
 }
 
@@ -118,6 +119,7 @@ export interface ConfigPayload {
         label: string;
         key: string;
         base_url: string;
+        priority?: number;
       }[];
     }
   >;

@@ -19,7 +19,7 @@ export function FluxDiagram() {
     <div className="glass-panel relative overflow-hidden rounded-[var(--radius-xl)] p-6 animate-fade-in-delay-1">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(232,163,23,0.06),transparent_55%)]" />
       <div className="relative">
-        <p className="text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">数据流</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-muted)]">数据流</p>
         <h3 className="mt-1 text-lg font-semibold">客户端 → ModelFlux → 上游</h3>
 
         <div className="mt-6 flex flex-col items-stretch gap-3 md:flex-row md:items-center md:justify-between">
@@ -39,7 +39,7 @@ export function FluxDiagram() {
           </div>
         </div>
 
-        <p className="mt-4 text-xs text-[var(--color-muted)]">
+        <p className="mt-4 text-xs leading-relaxed text-[var(--color-muted)]">
           默认路由兜底：
           <span className="font-mono text-[var(--color-flow)]">{defaultProvider}</span>
           {" · "}
@@ -65,7 +65,7 @@ function FlowNode({
 }) {
   return (
     <div
-      className={`min-w-[120px] rounded-[14px] border px-4 py-3 text-center ${
+      className={`min-w-[120px] rounded-[16px] border px-4 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${
         highlight
           ? "border-[var(--color-accent)]/40 bg-[rgba(232,163,23,0.08)] shadow-[0_0_24px_rgba(232,163,23,0.12)]"
           : active

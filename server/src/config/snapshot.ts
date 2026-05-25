@@ -44,7 +44,7 @@ export function providerEnvFromPayload(
   const existingById = new Map(existing.map((row) => [row.id, row]));
   const existingByMasked = new Map(existing.map((row) => [maskSecret(row.key), row]));
   const rows = Array.isArray(provider.keys) ? (provider.keys as Record<string, unknown>[]) : [];
-  const resolved: { key: string; label: string; enabled: boolean; base_url: string }[] = [];
+  const resolved: { key: string; label: string; enabled: boolean; base_url: string; priority: number }[] = [];
   const seen = new Set<string>();
 
   rows.forEach((row, i) => {
@@ -64,6 +64,7 @@ export function providerEnvFromPayload(
       label: String(row?.label || "").trim() || `key-${i + 1}`,
       enabled: provider.enabled !== false && row?.enabled !== false,
       base_url: baseUrl,
+      priority: Number(row?.priority || 0) || 0,
     });
   });
 
@@ -107,6 +108,7 @@ export function activeConfigSnapshot(ctx: AppContext, { reveal = false } = {}) {
         key: reveal ? k.key : maskSecret(k.key),
         masked: maskSecret(k.key),
         base_url: k.base_url || baseUrl,
+        priority: k.priority || 0,
         scheduler:
           runtimeById.get(k.id) ||
           ({
@@ -128,7 +130,7 @@ export function activeConfigSnapshot(ctx: AppContext, { reveal = false } = {}) {
             cooldown_until: null,
             next_probe_at: null,
             cooldown_ms_remaining: 0,
-            weight: 1,
+            weight: Math.max(1, Number(k.priority || 0) + 1),
           }),
       })),
       primary_key: reveal ? primary : maskSecret(primary),
@@ -137,7 +139,9 @@ export function activeConfigSnapshot(ctx: AppContext, { reveal = false } = {}) {
         : parseKeyPoolAll("", pool, baseUrl)
             .map(
               (k) =>
-                `${maskSecret(k.key)}${k.label ? "|" + k.label : ""}|${k.enabled === false ? "disabled" : "enabled"}${k.base_url && k.base_url !== baseUrl ? "|" + k.base_url : ""}`,
+                `${maskSecret(k.key)}${k.label ? "|" + k.label : ""}|${k.enabled === false ? "disabled" : "enabled"}${
+                  k.base_url && k.base_url !== baseUrl ? "|" + k.base_url : k.priority ? "|" : ""
+                }${k.priority ? "|" + k.priority : ""}`,
             )
             .join(","),
     };

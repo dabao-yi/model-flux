@@ -18,13 +18,14 @@ import {
 import { CONFIG_ENV_PATH, writeManagedEnv } from "./config/env.js";
 import { log, isAccessLogOn } from "./lib/log.js";
 import { initUpstreamFetch, upstreamFetch } from "./lib/upstream-fetch.js";
-import { maskSecret, normalizeConfigNewlines } from "./lib/utils.js";
+import { keyFingerprint, maskSecret, normalizeBaseUrl, normalizeConfigNewlines } from "./lib/utils.js";
 import { pickProxyKeyForProvider } from "./routing/models.js";
 import { classifyUpstreamException, classifyUpstreamResponse } from "./scheduler/accounts.js";
 import { normalizeInputToArray } from "./translate/messages.js";
 import { executeWebFetch } from "./tools/web-fetch.js";
 import { handleOaiCompatResponses, handleOaiCompatChatCompletions } from "./providers/handlers.js";
 import { forwardOpenAIResponses, forwardOpenAIChatCompletions } from "./providers/openai.js";
+import type { KeyPoolRow } from "./lib/utils.js";
 type Variables = {
   lockedProvider: string;
 };
@@ -104,32 +105,228 @@ function accountSnapshot(provider: string, id: string) {
   return getAppContext().accountScheduler.snapshot(provider)[provider]?.find((row) => row.id === id) || null;
 }
 
+type DraftProviderKeyInput = {
+  id?: string;
+  label?: string;
+  key?: string;
+  masked?: string;
+  enabled?: boolean;
+  base_url?: string;
+  provider_base_url?: string;
+  priority?: number;
+};
+
+type DraftProviderInput = {
+  enabled?: boolean;
+  base_url?: string;
+  models?: string;
+  keys?: DraftProviderKeyInput[];
+};
+
+function httpError(message: string, statusCode = 400) {
+  const err = new Error(message) as Error & { statusCode?: number };
+  err.statusCode = statusCode;
+  return err;
+}
+
+function toDraftProviderKeyRow(provider: string, id: string, draft?: DraftProviderKeyInput): KeyPoolRow {
+  const existing = id ? findProviderKeyInContext(provider, id) : null;
+  const rawKey = String(draft?.key || "").trim();
+  const rawMasked = String(draft?.masked || "").trim();
+
+  let effectiveKey = "";
+  if (draft) {
+    if (rawKey) {
+      effectiveKey = maskedValue(rawKey) ? existing?.key || "" : rawKey;
+    } else if (rawMasked && maskedValue(rawMasked)) {
+      effectiveKey = existing?.key || "";
+    }
+  } else {
+    effectiveKey = existing?.key || "";
+  }
+
+  if (!effectiveKey) {
+    throw httpError("当前页面 key 为空或仍是不可解析的脱敏值，无法连接上游。", 400);
+  }
+
+  const providerBaseUrl = normalizeBaseUrl(draft?.provider_base_url || "");
+  const explicitBaseUrl = normalizeBaseUrl(draft?.base_url || "");
+  const fallbackBaseUrl = existing?.base_url || providerBase(provider);
+  const effectiveBaseUrl =
+    draft !== undefined
+      ? explicitBaseUrl || providerBaseUrl || fallbackBaseUrl
+      : explicitBaseUrl || fallbackBaseUrl;
+
+  return {
+    id: String(id || draft?.id || existing?.id || keyFingerprint(effectiveKey)).trim(),
+    key: effectiveKey,
+    label: String(draft?.label || "").trim() || existing?.label || "primary",
+    enabled: draft?.enabled !== false && (draft?.enabled !== undefined || existing ? existing?.enabled !== false : true),
+    source: existing?.source || "draft",
+    base_url: effectiveBaseUrl,
+    priority: Number(draft?.priority ?? existing?.priority ?? 0) || 0,
+  };
+}
+
+function toDraftProviderRows(provider: string, draft?: DraftProviderInput): KeyPoolRow[] {
+  if (!draft) return [];
+  const providerBaseUrl = normalizeBaseUrl(draft.base_url || "");
+  const rows = Array.isArray(draft.keys) ? draft.keys : [];
+  const dedupe = new Set<string>();
+  const out: KeyPoolRow[] = [];
+  for (const item of rows) {
+    const row = toDraftProviderKeyRow(provider, String(item?.id || "").trim(), {
+      ...item,
+      provider_base_url: item?.provider_base_url || providerBaseUrl,
+    });
+    const key = `${row.id}|${row.base_url}|${row.key}`;
+    if (dedupe.has(key)) continue;
+    dedupe.add(key);
+    out.push(row);
+  }
+  return out;
+}
+
+function draftAccountSnapshot(
+  provider: string,
+  row: KeyPoolRow,
+  result?: { ok?: boolean; classification?: ReturnType<typeof classifyUpstreamException>; status?: number | null },
+) {
+  const runtime = accountSnapshot(provider, row.id);
+  const now = Date.now();
+  const base = runtime
+    ? { ...runtime }
+    : {
+        id: row.id,
+        label: row.label,
+        provider,
+        masked: maskSecret(row.key),
+        base_url: row.base_url || "",
+        enabled: row.enabled !== false,
+        state: row.enabled === false ? "manual_disabled" : "healthy",
+        weight: Math.max(1, Number(row.priority || 0) + 1),
+        in_flight: 0,
+        success_count: 0,
+        failure_count: 0,
+        last_success_at: null,
+        last_error_at: null,
+        last_error: "",
+        last_status: null,
+        cooldown_until: null,
+        next_probe_at: null,
+        last_used_at: null,
+        schedulable: row.enabled !== false,
+        cooldown_ms_remaining: 0,
+      };
+
+  base.label = row.label;
+  base.masked = maskSecret(row.key);
+  base.base_url = row.base_url || "";
+  base.enabled = row.enabled !== false;
+
+  if (!base.enabled) {
+    base.state = "manual_disabled";
+    base.schedulable = false;
+    base.cooldown_until = null;
+    base.next_probe_at = null;
+    base.cooldown_ms_remaining = 0;
+    return base;
+  }
+
+  if (result?.ok) {
+    base.state = "healthy";
+    base.success_count = (base.success_count || 0) + 1;
+    base.last_success_at = now;
+    base.last_error = "";
+    base.last_status = 200;
+    base.cooldown_until = null;
+    base.next_probe_at = null;
+    base.cooldown_ms_remaining = 0;
+    base.schedulable = true;
+    return base;
+  }
+
+  const classification = result?.classification;
+  if (classification) {
+    base.failure_count = (base.failure_count || 0) + 1;
+    base.last_error_at = now;
+    base.last_error = classification.message;
+    base.last_status = classification.status ?? null;
+    base.state = classification.state === "healthy" ? "temporary_error" : classification.state;
+    base.cooldown_until = classification.cooldownMs > 0 ? now + classification.cooldownMs : null;
+    base.next_probe_at = base.cooldown_until;
+    base.cooldown_ms_remaining = classification.cooldownMs || 0;
+    base.schedulable = false;
+  }
+
+  return base;
+}
+
+async function discoverProviderModelsWithDraft(provider: string, draft?: DraftProviderInput) {
+  if (!draft) return getAppContext().discoverProviderModels(provider);
+
+  const rows = toDraftProviderRows(provider, draft).filter((row) => row.enabled !== false);
+  const row = rows[0];
+  if (!row) {
+    throw httpError("当前页面没有可用的启用 key，无法发现模型。", 400);
+  }
+  const base = normalizeBaseUrl(row.base_url || draft.base_url || "");
+  if (!base) {
+    throw httpError("当前页面没有可用的 Base URL，无法发现模型。", 400);
+  }
+
+  const upstreamRes = await upstreamFetch(
+    `${base}/models`,
+    {
+      method: "GET",
+      headers: { Authorization: `Bearer ${row.key}`, Accept: "application/json" },
+    },
+    30000,
+  );
+  const raw = await upstreamRes.text();
+  if (!upstreamRes.ok) {
+    const classification = classifyUpstreamResponse(upstreamRes.status, raw, upstreamRes.headers);
+    return { ok: false, error: classification.message, models: [], source: "draft" };
+  }
+
+  let parsed: any = null;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = null;
+  }
+  const models = Array.isArray(parsed?.data)
+    ? parsed.data.map((item: any) => String(item?.id || "").trim()).filter(Boolean)
+    : [];
+  return {
+    ok: true,
+    models,
+    source: "draft",
+  };
+}
+
 async function probeProviderAccount(
   provider: string,
   id: string,
-  opts: { model?: string; record?: boolean; forceState?: boolean } = {},
+  opts: { model?: string; record?: boolean; forceState?: boolean; rowOverride?: KeyPoolRow } = {},
 ) {
   const appCtx = getAppContext();
-  const row = findProviderKeyInContext(provider, id);
+  const row = opts.rowOverride || findProviderKeyInContext(provider, id);
   if (!row) {
-    const err = new Error("provider key not found") as Error & { statusCode?: number };
-    err.statusCode = 404;
-    throw err;
+    throw httpError("provider key not found", 404);
   }
 
-  let account = appCtx.accountScheduler.find(provider, id);
-  if (!account) {
+  let account = opts.record === false ? null : appCtx.accountScheduler.find(provider, id);
+  if (opts.record !== false && !account) {
     account = appCtx.accountScheduler.upsertAccount(provider, row);
   }
-  if (opts.forceState) {
+  if (opts.record !== false && opts.forceState) {
     appCtx.accountScheduler.markProbing(provider, id);
   }
 
-  const base = providerBase(provider, account.base_url).replace(/\/+$/, "");
+  const base = providerBase(provider, row.base_url).replace(/\/+$/, "");
   if (!base) {
-    const err = new Error(`${provider} 没有配置 Base URL。`) as Error & { statusCode?: number };
-    err.statusCode = 400;
-    throw err;
+    throw httpError(`${provider} 没有配置 Base URL。`, 400);
   }
 
   const model = providerProbeModel(provider, opts.model);
@@ -167,7 +364,7 @@ async function probeProviderAccount(
         http_status: upstreamRes.status,
         latency_ms: Date.now() - started,
         text: text.slice(0, 1000),
-        account: accountSnapshot(provider, id),
+        account: opts.record === false ? draftAccountSnapshot(provider, row, { ok: true }) : accountSnapshot(provider, id),
       };
     }
     const classification = classifyUpstreamResponse(upstreamRes.status, text, upstreamRes.headers);
@@ -183,7 +380,10 @@ async function probeProviderAccount(
       http_status: upstreamRes.status,
       latency_ms: Date.now() - started,
       classification,
-      account: accountSnapshot(provider, id),
+      account:
+        opts.record === false
+          ? draftAccountSnapshot(provider, row, { ok: false, classification })
+          : accountSnapshot(provider, id),
     };
   } catch (err) {
     const classification = classifyUpstreamException(err);
@@ -196,7 +396,10 @@ async function probeProviderAccount(
       model,
       latency_ms: Date.now() - started,
       classification,
-      account: accountSnapshot(provider, id),
+      account:
+        opts.record === false
+          ? draftAccountSnapshot(provider, row, { ok: false, classification })
+          : accountSnapshot(provider, id),
     };
   }
 }
@@ -307,8 +510,8 @@ app.get("/admin/api/provider-models", async (c) => {
 
 app.post("/admin/api/provider-models", async (c) => {
   try {
-    const payload = await c.req.json<{ provider?: string }>();
-    return c.json(await getAppContext().discoverProviderModels(payload.provider || ""));
+    const payload = await c.req.json<{ provider?: string; draft?: DraftProviderInput }>();
+    return c.json(await discoverProviderModelsWithDraft(payload.provider || "", payload.draft));
   } catch (err) {
     const e = err as Error & { statusCode?: number };
     return c.json({ ok: false, error: e.message, models: [] }, (e.statusCode || 500) as 400);
@@ -348,14 +551,31 @@ app.post("/admin/api/provider-key", async (c) => {
 
 app.post("/admin/api/provider-key/test", async (c) => {
   try {
-    const payload = await c.req.json<{ provider?: string; id?: string; model?: string }>();
+    const payload = await c.req.json<{
+      provider?: string;
+      id?: string;
+      model?: string;
+      draft?: DraftProviderKeyInput;
+      provider_draft?: DraftProviderInput;
+    }>();
     const provider = String(payload.provider || "").trim().toLowerCase();
-    const id = String(payload.id || "").trim();
-    if (!provider || !id) return c.json({ error: { message: "provider and id are required" } }, 400);
-    const result = await probeProviderAccount(provider, id, { model: payload.model, record: true });
+    if (!provider) return c.json({ error: { message: "provider is required" } }, 400);
+    const row = payload.draft
+      ? toDraftProviderKeyRow(provider, String(payload.id || payload.draft.id || "").trim(), {
+          ...payload.draft,
+          provider_base_url: payload.provider_draft?.base_url,
+        })
+      : null;
+    const id = String(payload.id || row?.id || "").trim();
+    if (!id) return c.json({ error: { message: "provider key id is required" } }, 400);
+    const result = await probeProviderAccount(provider, id, {
+      model: payload.model,
+      record: !row,
+      rowOverride: row || undefined,
+    });
     return c.json({
       ...result,
-      account: accountSnapshot(provider, id),
+      account: result.account ?? accountSnapshot(provider, id),
     });
   } catch (err) {
     const e = err as Error & { statusCode?: number };
@@ -386,24 +606,40 @@ app.post("/admin/api/provider-key/status", async (c) => {
 
 app.post("/admin/api/provider-key/probe", async (c) => {
   try {
-    const payload = await c.req.json<{ provider?: string; id?: string; model?: string }>();
+    const payload = await c.req.json<{
+      provider?: string;
+      id?: string;
+      model?: string;
+      draft?: DraftProviderKeyInput;
+      provider_draft?: DraftProviderInput;
+    }>();
     const provider = String(payload.provider || "").trim().toLowerCase();
-    const id = String(payload.id || "").trim();
-    if (!provider || !id) return c.json({ error: { message: "provider and id are required" } }, 400);
-    const row = findProviderKeyInContext(provider, id);
+    if (!provider) return c.json({ error: { message: "provider is required" } }, 400);
+    const row = payload.draft
+      ? toDraftProviderKeyRow(provider, String(payload.id || payload.draft.id || "").trim(), {
+          ...payload.draft,
+          provider_base_url: payload.provider_draft?.base_url,
+        })
+      : findProviderKeyInContext(provider, String(payload.id || "").trim());
+    const id = String(payload.id || row?.id || "").trim();
     if (!row) return c.json({ error: { message: "provider key not found" } }, 404);
     if (row.enabled === false) {
       return c.json({ error: { message: "account is manually disabled; enable it before probing" } }, 400);
     }
-    const account = getAppContext().accountScheduler.find(provider, id);
+    const account = payload.draft ? null : getAppContext().accountScheduler.find(provider, id);
     if (account && !account.enabled) {
       return c.json({ error: { message: "account is manually disabled; enable it before probing" } }, 400);
     }
-    getAppContext().accountScheduler.markProbing(provider, id);
-    const result = await probeProviderAccount(provider, id, { model: payload.model, record: true, forceState: true });
+    if (!payload.draft) getAppContext().accountScheduler.markProbing(provider, id);
+    const result = await probeProviderAccount(provider, id, {
+      model: payload.model,
+      record: !payload.draft,
+      forceState: !payload.draft,
+      rowOverride: row,
+    });
     return c.json({
       ...result,
-      account: accountSnapshot(provider, id),
+      account: result.account ?? accountSnapshot(provider, id),
     });
   } catch (err) {
     const e = err as Error & { statusCode?: number };
@@ -422,7 +658,7 @@ app.get("/admin/api/scheduler", (c) =>
 app.get("/admin/api/integration", (c) => c.json(integrationSnapshot(c, getAppContext())));
 
 app.post("/admin/api/test", async (c) => {
-  const payload = await c.req.json<{ model?: string; provider?: string; prompt?: string }>();
+  const payload = await c.req.json<{ model?: string; provider?: string; prompt?: string; draft?: DraftProviderInput }>();
   const appCtx = getAppContext();
   let model = String(payload.model || "").trim();
   const testBody = {
@@ -460,6 +696,33 @@ app.post("/admin/api/test", async (c) => {
         },
       },
       400,
+    );
+  }
+
+  if (payload.draft) {
+    const rows = toDraftProviderRows(provider, payload.draft).filter((row) => row.enabled !== false);
+    const row = rows[0];
+    if (!row) {
+      return c.json({ error: { message: "当前页面没有可用于测试的启用 key。" } }, 400);
+    }
+    const result = await probeProviderAccount(provider, row.id, {
+      model,
+      record: false,
+      rowOverride: row,
+    });
+    return c.json(
+      {
+        ok: !!result.ok,
+        provider,
+        model,
+        upstream_model: appCtx.resolveUpstreamModel(provider, model),
+        route: appCtx.describeModelRoute(model),
+        text: result.ok ? result.text || "" : result.classification?.message || "",
+        raw: result.ok ? (result.text || "").slice(0, 4096) : "",
+        classification: result.classification,
+        account: result.account,
+      },
+      (result.ok ? 200 : (result.http_status || 502)) as 200,
     );
   }
 

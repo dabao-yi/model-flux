@@ -186,6 +186,7 @@ export class AccountScheduler {
       existing.label = row.label || existing.label;
       existing.masked = maskSecret(row.key);
       existing.base_url = row.base_url || existing.base_url || "";
+      existing.weight = Math.max(1, Number(row.priority || 0) + 1);
       existing.enabled = row.enabled !== false;
       if (existing.enabled && existing.state === "manual_disabled") existing.state = "healthy";
       if (!existing.enabled) existing.state = "manual_disabled";
@@ -200,7 +201,7 @@ export class AccountScheduler {
       base_url: row.base_url || "",
       enabled: row.enabled !== false,
       state: row.enabled === false ? "manual_disabled" : "healthy",
-      weight: 1,
+      weight: Math.max(1, Number(row.priority || 0) + 1),
       in_flight: 0,
       success_count: 0,
       failure_count: 0,
@@ -263,6 +264,7 @@ export class AccountScheduler {
       const loadA = a.in_flight / Math.max(1, a.weight || 1);
       const loadB = b.in_flight / Math.max(1, b.weight || 1);
       if (loadA !== loadB) return loadA - loadB;
+      if ((a.weight || 1) !== (b.weight || 1)) return (b.weight || 1) - (a.weight || 1);
       return (a.last_used_at || 0) - (b.last_used_at || 0);
     });
     const selected = candidates[0];
@@ -350,7 +352,7 @@ export class AccountScheduler {
       out[acc.provider].push(this.snapshotAccount(acc));
     }
     for (const list of Object.values(out)) {
-      list.sort((a, b) => a.label.localeCompare(b.label));
+      list.sort((a, b) => (b.weight || 1) - (a.weight || 1) || a.label.localeCompare(b.label));
     }
     return out;
   }

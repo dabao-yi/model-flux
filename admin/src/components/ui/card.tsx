@@ -12,13 +12,16 @@ export function Section({
   className,
   children,
   style,
+  id,
 }: {
   className?: string;
   children: React.ReactNode;
   style?: React.CSSProperties;
+  id?: string;
 }) {
   return (
     <section
+      id={id}
       style={style}
       className={cn("glass-panel glass-panel-hover mb-5 rounded-[var(--radius-xl)] p-5 md:p-6", className)}
     >

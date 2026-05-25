@@ -60,8 +60,16 @@ export function normalizeBaseUrl(value: unknown): string {
   return String(value || "").trim().replace(/\/+$/, "");
 }
 
+export function normalizePriority(value: unknown): number {
+  const raw = String(value ?? "").trim();
+  if (!raw) return 0;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || Number.isNaN(parsed)) return 0;
+  return Math.max(0, parsed);
+}
+
 export function encodeKeyPoolEntry(
-  row: { key?: string; label?: string; enabled?: boolean; base_url?: string },
+  row: { key?: string; label?: string; enabled?: boolean; base_url?: string; priority?: number },
   defaultBaseUrl = "",
 ): string {
   const key = String(row?.key || "").trim();
@@ -70,8 +78,14 @@ export function encodeKeyPoolEntry(
   const status = row?.enabled === false ? "disabled" : "enabled";
   const baseUrl = normalizeBaseUrl(row?.base_url);
   const fallback = normalizeBaseUrl(defaultBaseUrl);
+  const priority = normalizePriority(row?.priority);
   const parts = [key, label, status];
-  if (baseUrl && baseUrl !== fallback) parts.push(baseUrl);
+  if (baseUrl && baseUrl !== fallback) {
+    parts.push(baseUrl);
+  } else if (priority > 0) {
+    parts.push("");
+  }
+  if (priority > 0) parts.push(String(priority));
   return parts.join("|");
 }
 
@@ -82,6 +96,7 @@ export interface KeyPoolRow {
   enabled: boolean;
   source: string;
   base_url?: string;
+  priority: number;
 }
 
 export function parseKeyPoolAll(primary: unknown, pool: unknown, defaultBaseUrl = ""): KeyPoolRow[] {
@@ -93,6 +108,7 @@ export function parseKeyPoolAll(primary: unknown, pool: unknown, defaultBaseUrl 
     if (!key || seen.has(key)) return;
     seen.add(key);
     const normalizedBaseUrl = normalizeBaseUrl(baseUrl) || fallbackBaseUrl;
+    const priority = 0;
     out.push({
       id: keyFingerprint(key),
       key,
@@ -100,6 +116,7 @@ export function parseKeyPoolAll(primary: unknown, pool: unknown, defaultBaseUrl 
       enabled: enabled !== false,
       source,
       base_url: normalizedBaseUrl,
+      priority,
     });
   };
   add(primary, "primary", true, "primary", fallbackBaseUrl);
@@ -108,8 +125,23 @@ export function parseKeyPoolAll(primary: unknown, pool: unknown, defaultBaseUrl 
     const key = (parts[0] || "").trim();
     const label = (parts[1] || "").trim();
     const enabled = parts.length >= 3 ? !isDisabledFlag(parts[2]) : true;
-    const baseUrl = parts.length >= 4 ? parts.slice(3).join("|").trim() : "";
-    add(key, label, enabled, "pool", baseUrl);
+    const maybeFourth = (parts[3] || "").trim();
+    const maybeFifth = (parts[4] || "").trim();
+    const fourthIsPriority = maybeFourth !== "" && /^\d+$/.test(maybeFourth) && !maybeFifth;
+    const baseUrl = fourthIsPriority ? "" : maybeFourth;
+    const priority = normalizePriority(fourthIsPriority ? maybeFourth : maybeFifth);
+    const normalizedBaseUrl = normalizeBaseUrl(baseUrl) || fallbackBaseUrl;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      id: keyFingerprint(key),
+      key,
+      label: label || `key-${out.length + 1}`,
+      enabled: enabled !== false,
+      source: "pool",
+      base_url: normalizedBaseUrl,
+      priority,
+    });
   }
   return out;
 }

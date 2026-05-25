@@ -65,6 +65,19 @@ export function IntegrationPage() {
             </p>
           </div>
         </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <SmokeTestCard
+            title="本机快速自检"
+            desc="适合在 Mac / 宿主机终端直接验证 ModelFlux 是否可达。"
+            command={buildSmokeTest(data?.items?.direct_model_flux?.base_url || "http://127.0.0.1:19090/v1", data?.items?.direct_model_flux?.model || "gpt-5.5")}
+          />
+          <SmokeTestCard
+            title="容器内快速自检"
+            desc="适合同一 Docker network 内的容器执行；若失败，优先检查服务名解析、NO_PROXY 和 compose network。"
+            command={buildSmokeTest(data?.items?.sub2api_to_flux?.base_url || "http://model-flux:19090/v1", data?.items?.sub2api_to_flux?.model || "gpt-5.5")}
+          />
+        </div>
       </Section>
 
       <IntegrationGroup
@@ -97,7 +110,7 @@ function EndpointGuide({
   warning: string;
 }) {
   return (
-    <div className="rounded-[18px] border border-[#223343] bg-[#081018] p-4">
+    <div className="rounded-[20px] border border-[#223343] bg-[linear-gradient(180deg,rgba(8,16,24,0.95),rgba(7,12,18,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
       <div className="flex items-center gap-2">
         <span className="grid size-9 place-items-center rounded-[12px] border border-[var(--color-line)] bg-[var(--color-bg-elevated)] text-[var(--color-flow)]">
           {icon}
@@ -131,7 +144,8 @@ function IntegrationGroup({
   return (
     <Section className="mb-4">
       <div className="mb-4">
-        <h3 className="font-semibold">{title}</h3>
+        <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-weak)]">Integration Group</p>
+        <h3 className="mt-2 font-semibold">{title}</h3>
         <p className="mt-1 text-sm text-[var(--color-muted)]">{subtitle}</p>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -147,8 +161,9 @@ function IntegrationGroup({
 
 function IntegrationCard({ item, accent }: { item: IntegrationSnapshot["items"][string]; accent: string }) {
   return (
-    <div className="flex min-w-0 flex-col rounded-[18px] border border-[var(--color-line)] bg-[#081018] p-4" style={{ borderTopWidth: 3, borderTopColor: accent, borderTopStyle: "solid" }}>
-      <h3 className="font-semibold">{item.title}</h3>
+    <div className="flex min-w-0 flex-col rounded-[20px] border border-[var(--color-line)] bg-[linear-gradient(180deg,rgba(8,16,24,0.95),rgba(7,12,18,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]" style={{ borderTopWidth: 3, borderTopColor: accent, borderTopStyle: "solid" }}>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-weak)]">Profile</p>
+      <h3 className="mt-2 font-semibold">{item.title}</h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--color-muted)]">{item.note}</p>
       <CopyLine label="base" display={item.base_url || "-"} onCopy={() => copyField(item.base_url, `${item.title} base`)} />
       <CopyLine
@@ -165,16 +180,47 @@ function IntegrationCard({ item, accent }: { item: IntegrationSnapshot["items"][
   );
 }
 
+function SmokeTestCard({ title, desc, command }: { title: string; desc: string; command: string }) {
+  return (
+    <div className="rounded-[20px] border border-[#223343] bg-[linear-gradient(180deg,rgba(8,16,24,0.95),rgba(7,12,18,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-weak)]">Smoke Test</p>
+          <h3 className="mt-2 font-semibold">{title}</h3>
+          <p className="mt-1 text-sm text-[var(--color-muted)]">{desc}</p>
+        </div>
+        <Button variant="mini" onClick={() => copyField(command, `${title} curl`)}>
+          复制 curl
+        </Button>
+      </div>
+      <pre className="mt-3 overflow-x-auto rounded-[14px] border border-[#172635] bg-[#060c12] p-3 font-mono text-[11px] leading-relaxed text-[#d7e3ee]">
+        <code>{command}</code>
+      </pre>
+    </div>
+  );
+}
+
 function CopyLine({ label, display, onCopy }: { label: string; display: string; onCopy: () => void }) {
   return (
-    <div className="mt-3 flex items-center gap-2 rounded-[10px] border border-[var(--color-line)] bg-[var(--color-bg-elevated)] p-2">
-      <span className="w-10 shrink-0 text-[10px] font-semibold uppercase text-[var(--color-weak)]">{label}</span>
-      <code className="min-w-0 flex-1 truncate font-mono text-[11px] text-[var(--color-muted)]">{display}</code>
-      <Button variant="mini" onClick={onCopy}>
+    <div className="mt-3 grid gap-2 rounded-[12px] border border-[var(--color-line)] bg-[rgba(255,255,255,0.02)] p-2.5 sm:grid-cols-[40px_minmax(0,1fr)_auto] sm:items-start">
+      <span className="pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-weak)]">{label}</span>
+      <code className="min-w-0 break-all font-mono text-[11px] leading-relaxed text-[var(--color-muted)]">{display}</code>
+      <Button variant="mini" onClick={onCopy} className="sm:self-start">
         复制
       </Button>
     </div>
   );
+}
+
+function buildSmokeTest(baseUrl: string, model: string) {
+  return [
+    `curl -s ${JSON.stringify(`${baseUrl}/models`)}`,
+    "",
+    `curl -s ${JSON.stringify(`${baseUrl}/chat/completions`)} \\`,
+    '  -H "Content-Type: application/json" \\',
+    '  -H "Authorization: Bearer <你的接入 key>" \\',
+    `  -d '${JSON.stringify({ model, messages: [{ role: "user", content: "请只输出 MODELFLUX_OK" }] })}'`,
+  ].join("\n");
 }
 
 async function copyField(value: string | undefined, label: string) {

@@ -95,6 +95,7 @@
     background: linear-gradient(165deg, rgba(18, 24, 32, 0.92) 0%, rgba(12, 16, 22, 0.88) 100%);
     border: 1px solid var(--color-line);
     box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(18px);
   }
 
   .glass-panel-hover {

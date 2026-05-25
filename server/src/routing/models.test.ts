@@ -28,6 +28,20 @@ describe("parseKeyPoolAll", () => {
     expect(rows[2].base_url).toBe("https://off.example/v1");
   });
 
+  it("parses per-key priority from pool entries", () => {
+    const rows = parseKeyPoolAll(
+      "sk-primary",
+      "sk-fast|fast|enabled||9,sk-mid|mid|enabled|https://mid.example/v1|3",
+      "https://default.example/v1",
+    );
+    expect(rows).toHaveLength(3);
+    expect(rows[0].priority).toBe(0);
+    expect(rows[1].priority).toBe(9);
+    expect(rows[1].base_url).toBe("https://default.example/v1");
+    expect(rows[2].priority).toBe(3);
+    expect(rows[2].base_url).toBe("https://mid.example/v1");
+  });
+
 });
 
 describe("parseKeyPool", () => {

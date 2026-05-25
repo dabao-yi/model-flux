@@ -8,7 +8,7 @@ services:
       NODE_ENV: production
       CONFIG_ENV_PATH: /app/.env
     ports:
-      - "127.0.0.1:${HOST_PORT:-19090}:${PROXY_PORT:-19090}"
+      - "${BIND_HOST:-127.0.0.1}:${HOST_PORT:-19090}:${PROXY_PORT:-19090}"
     volumes:
       - ./.env:/app/.env
       - ./proxy-models.example.json:/app/proxy-models.example.json:ro

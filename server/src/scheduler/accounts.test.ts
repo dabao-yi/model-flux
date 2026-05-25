@@ -47,6 +47,17 @@ describe("AccountScheduler", () => {
     s.release(third);
   });
 
+  it("prefers higher priority accounts when load is equal", () => {
+    const s = createAccountScheduler();
+    s.syncProvider("mimo", [
+      { ...row("a"), priority: 0 },
+      { ...row("b"), priority: 8 },
+    ]);
+    const selected = s.select("mimo");
+    expect(selected?.id).toBe("b");
+    s.release(selected);
+  });
+
   it("moves cooled down accounts into probing", async () => {
     const s = createAccountScheduler();
     s.syncProvider("mimo", [row("a")]);

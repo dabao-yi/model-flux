@@ -63,13 +63,13 @@ export function DashboardPage() {
               </Button>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:min-w-[280px]">
-            <Metric label="运行账号池" value={(rt?.enabled_providers || []).join(", ") || "none"} />
-            <Metric label="模型数" value={String(rt?.model_count ?? "—")} accent />
-            <Metric label="可调度账号" value={String(scheduler?.schedulable_accounts ?? "—")} accent />
-            <Metric label="异常账号" value={String(scheduler?.abnormal_accounts ?? "—")} warn={(scheduler?.abnormal_accounts || 0) > 0} />
-            <Metric label="默认路由" value={rt?.default_provider || "—"} />
-            <Metric label="配置状态" value={stateLabel} warn={dirty} />
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:min-w-[320px]">
+            <Metric label="运行账号池" value={(rt?.enabled_providers || []).join(", ") || "none"} hint="当前已启用的账号池" />
+            <Metric label="模型数" value={String(rt?.model_count ?? "—")} accent hint="当前可暴露给客户端的模型总数" />
+            <Metric label="可调度账号" value={String(scheduler?.schedulable_accounts ?? "—")} accent hint="健康且参与轮询的账号数" />
+            <Metric label="异常账号" value={String(scheduler?.abnormal_accounts ?? "—")} warn={(scheduler?.abnormal_accounts || 0) > 0} hint="余额不足 / 限流 / 认证异常" />
+            <Metric label="默认路由" value={rt?.default_provider || "—"} hint="未命中明确映射时的兜底账号池" />
+            <Metric label="配置状态" value={stateLabel} warn={dirty} hint={dirty ? "存在未保存更改" : "当前配置已同步"} />
           </div>
         </div>
       </Card>
@@ -77,7 +77,7 @@ export function DashboardPage() {
       <Card className="animate-fade-in-delay-2">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-sm font-semibold">可选接入链路</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-weak)]">可选接入链路</p>
             <div className="mt-1 space-y-1 font-mono text-sm text-[var(--color-flow)]">
               <p>Codex -&gt; ModelFlux -&gt; upstream</p>
               <p>Codex -&gt; CLIProxyAPI / sub2api -&gt; ModelFlux -&gt; upstream</p>
@@ -87,12 +87,12 @@ export function DashboardPage() {
               ModelFlux 内部只调度健康账号；余额不足、限流、认证异常会自动进入冷却并等待探测恢复。
             </p>
           </div>
-          <div className="min-w-[260px] rounded-[14px] border border-[var(--color-line)] bg-[var(--color-bg-elevated)] p-3 text-xs text-[var(--color-muted)]">
-            <b className="mb-2 block text-[var(--color-text)]">最近异常</b>
+          <div className="min-w-[300px] rounded-[18px] border border-[#20303f] bg-[linear-gradient(180deg,rgba(10,17,24,0.92),rgba(7,12,18,0.86))] p-4 text-xs text-[var(--color-muted)]">
+            <b className="mb-2 block text-[11px] uppercase tracking-[0.18em] text-[var(--color-weak)]">最近异常</b>
             {scheduler?.recent_errors?.length ? (
               <div className="space-y-1.5">
                 {scheduler.recent_errors.slice(0, 3).map((e) => (
-                  <div key={`${e.provider}-${e.id}-${e.at}`} className="truncate" title={e.error}>
+                  <div key={`${e.provider}-${e.id}-${e.at}`} className="rounded-[12px] border border-[rgba(248,113,113,0.16)] bg-[rgba(248,113,113,0.05)] px-3 py-2" title={e.error}>
                     <span className="text-[var(--color-warn)]">{e.provider}/{e.label}</span>
                     {e.status ? ` HTTP ${e.status}` : ""}: {e.error}
                   </div>
@@ -114,7 +114,7 @@ export function DashboardPage() {
       </div>
 
       <Card className="animate-fade-in-delay-2">
-        <p className="text-sm font-medium">快捷操作</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--color-weak)]">快捷操作</p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button variant="ghost" onClick={() => loadConfig(reveal)}>
             <RefreshCw className="size-4" />
@@ -130,15 +130,28 @@ export function DashboardPage() {
   );
 }
 
-function Metric({ label, value, warn, accent }: { label: string; value: string; warn?: boolean; accent?: boolean }) {
+function Metric({
+  label,
+  value,
+  hint,
+  warn,
+  accent,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  warn?: boolean;
+  accent?: boolean;
+}) {
   return (
-    <div className="rounded-[14px] border border-[var(--color-line)] bg-[var(--color-bg-elevated)] p-4">
+    <div className="rounded-[18px] border border-[#223343] bg-[linear-gradient(180deg,rgba(10,17,24,0.95),rgba(7,12,18,0.88))] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-weak)]">{label}</p>
       <p
-        className={`truncate text-lg font-semibold ${warn ? "text-[var(--color-warn)]" : accent ? "text-[var(--color-flow)]" : ""}`}
+        className={`mt-2 truncate text-[22px] font-semibold leading-none ${warn ? "text-[var(--color-warn)]" : accent ? "text-[var(--color-flow)]" : ""}`}
       >
         {value}
       </p>
-      <p className="mt-1 text-[11px] text-[var(--color-muted)]">{label}</p>
+      {hint ? <p className="mt-2 text-[11px] leading-relaxed text-[var(--color-muted)]">{hint}</p> : null}
     </div>
   );
 }
@@ -147,11 +160,12 @@ function QuickLink({ to, title, desc }: { to: string; title: string; desc: strin
   return (
     <Link
       to={to}
-      className="glass-panel glass-panel-hover group flex flex-col rounded-[var(--radius-lg)] p-4 no-underline transition"
+      className="glass-panel glass-panel-hover group flex flex-col rounded-[20px] p-4 no-underline transition"
     >
-      <span className="font-medium text-[var(--color-text)] group-hover:text-[var(--color-accent)]">{title}</span>
-      <span className="mt-1 text-xs text-[var(--color-muted)]">{desc}</span>
-      <ArrowRight className="mt-3 size-4 text-[var(--color-weak)] transition group-hover:translate-x-0.5 group-hover:text-[var(--color-flow)]" />
+      <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-weak)]">Quick Link</span>
+      <span className="mt-2 font-medium text-[var(--color-text)] group-hover:text-[var(--color-accent)]">{title}</span>
+      <span className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">{desc}</span>
+      <ArrowRight className="mt-4 size-4 text-[var(--color-weak)] transition group-hover:translate-x-0.5 group-hover:text-[var(--color-flow)]" />
     </Link>
   );
 }

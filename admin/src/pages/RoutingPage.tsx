@@ -126,7 +126,7 @@ export function RoutingPage() {
       <PageHeader
         step="02"
         title="模型路由"
-        hint="把客户端请求的模型名，明确映射到某个账号池和真实上游模型。"
+        hint="把客户端请求的模型名，明确映射到某个账号池和真实上游模型；预览会直接展开在当前行下方，不会再把结果丢到页面底部。"
         actions={
           <Button variant="primary" onClick={openAdd}>
             <Plus className="size-4" />
@@ -135,7 +135,7 @@ export function RoutingPage() {
         }
       />
 
-      <div className="grid gap-2.5 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-3">
         {[
           ["1", "先看明确映射", "如 gpt-5.5 = mimo:mimo-v2-pro"],
           ["2", "再看真实模型直连", "请求模型在账号池 Models 里则直连"],
@@ -143,15 +143,15 @@ export function RoutingPage() {
         ].map(([no, title, desc]) => (
           <div
             key={no}
-            className="relative rounded-[18px] border border-[#263746] bg-gradient-to-b from-[#0b141d] to-[#081018] p-3.5"
+            className="relative rounded-[20px] border border-[#223343] bg-[linear-gradient(180deg,rgba(11,20,29,0.96),rgba(8,16,24,0.88))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
           >
             <b className="flex items-center gap-2 text-sm">
-              <span className="inline-grid size-6 place-items-center rounded-full bg-[var(--color-accent)] text-xs font-black text-[#111]">
+              <span className="inline-grid size-7 place-items-center rounded-full bg-[var(--color-accent)] text-xs font-black text-[#111] shadow-[0_8px_18px_rgba(232,163,23,0.22)]">
                 {no}
               </span>
               {title}
             </b>
-            <span className="mt-2 block text-xs leading-relaxed text-[var(--color-muted)]">{desc}</span>
+            <span className="mt-2.5 block text-xs leading-relaxed text-[var(--color-muted)]">{desc}</span>
           </div>
         ))}
       </div>
@@ -163,14 +163,14 @@ export function RoutingPage() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="DEFAULT_PROVIDER（未命中时的兜底账号池）">
+        <Field label="DEFAULT_PROVIDER（未命中时的兜底账号池）" hint="只有在明确映射和真实模型直连都未命中时，才会走这里。">
           <Select
             value={cfg.form.defaultProvider || ""}
             onValueChange={(v) => cfg.setRouting({ defaultProvider: v })}
             options={defaultOptions}
           />
         </Field>
-        <Field label="OPENAI_MODEL_PREFIXES">
+        <Field label="OPENAI_MODEL_PREFIXES" hint="用于辅助识别 OpenAI 风格模型名前缀；多个前缀用逗号分隔。">
           <Input
             value={cfg.form.openaiPrefixes}
             onChange={(e) => cfg.setRouting({ openaiPrefixes: e.target.value })}
@@ -189,7 +189,7 @@ export function RoutingPage() {
               </span>
             </div>
             <p className="mt-1 text-sm text-[var(--color-muted)]">
-              一行就是一条路由链路；点“预览”会在当前行下方展开命中结果，点“编辑”直接在当前行修改。
+              一行就是一条路由链路；点“预览”会直接在当前行下方展开命中结果，点“编辑”直接在当前行修改；新增则统一走弹窗。
             </p>
           </div>
           <Button variant="mini" onClick={openAdd}>
@@ -197,18 +197,35 @@ export function RoutingPage() {
             新增映射
           </Button>
         </div>
+        <div className="mb-4 grid gap-2 md:grid-cols-3">
+          <RouteGuide
+            title="预览"
+            desc="直接展开在当前行下方，方便边看命中结果边调整映射。"
+            tone="flow"
+          />
+          <RouteGuide
+            title="编辑"
+            desc="已有规则直接行内改，避免新增与编辑同时占用视线。"
+            tone="accent"
+          />
+          <RouteGuide
+            title="新增"
+            desc="只在弹窗里创建新规则，保持映射表本身干净稳定。"
+            tone="muted"
+          />
+        </div>
         {cfg.aliasRows.length === 0 ? (
           <EmptyAliasState onAdd={openAdd} />
         ) : (
-          <div className="overflow-hidden rounded-[22px] border border-[#223343] bg-[#071019]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <div className="hidden grid-cols-[1fr_0.72fr_1.15fr_120px_210px] gap-2 border-b border-[#1b2a38] bg-[linear-gradient(90deg,rgba(232,163,23,0.08),rgba(61,214,198,0.06),transparent)] px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-weak)] lg:grid">
+          <div className="overflow-hidden rounded-[24px] border border-[#223343] bg-[linear-gradient(180deg,rgba(7,16,25,0.9),rgba(5,11,16,0.84))] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="hidden grid-cols-[1fr_0.72fr_1.15fr_120px_220px] gap-2 border-b border-[#1b2a38] bg-[linear-gradient(90deg,rgba(232,163,23,0.09),rgba(61,214,198,0.06),transparent)] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-weak)] lg:grid">
               <span>客户端模型</span>
               <span>账号池</span>
               <span>上游模型</span>
               <span>状态</span>
               <span className="text-right">操作</span>
             </div>
-            <div className="grid gap-2 p-2">
+            <div className="grid gap-3 p-3">
               {cfg.aliasRows.map((row) => {
                 const rowKey = normModel(row.from);
                 const editing = editingKey === rowKey;
@@ -219,12 +236,12 @@ export function RoutingPage() {
                 return (
                   <div key={row.from} className="grid gap-2">
                     <div
-                      className={`group relative grid gap-3 overflow-hidden rounded-[18px] border p-3.5 transition-all lg:grid-cols-[1fr_0.72fr_1.15fr_120px_210px] lg:items-center ${
+                      className={`group relative grid gap-3 overflow-hidden rounded-[20px] border p-4 transition-all lg:grid-cols-[1fr_0.72fr_1.15fr_120px_220px] lg:items-center ${
                         editing
-                          ? "border-[rgba(232,163,23,0.45)] bg-[linear-gradient(90deg,rgba(232,163,23,0.12),rgba(11,18,25,0.96))] shadow-[0_0_0_1px_rgba(232,163,23,0.16)]"
+                          ? "border-[rgba(232,163,23,0.45)] bg-[linear-gradient(90deg,rgba(232,163,23,0.12),rgba(11,18,25,0.96))] shadow-[0_0_0_1px_rgba(232,163,23,0.16),0_16px_30px_rgba(0,0,0,0.18)]"
                           : selected
                             ? "border-[rgba(61,214,198,0.45)] bg-[linear-gradient(90deg,rgba(61,214,198,0.12),rgba(11,18,25,0.96))] shadow-[0_0_26px_rgba(61,214,198,0.08)]"
-                            : "border-[#172635] bg-[#0b1219] hover:border-[#2a4154] hover:bg-[#0e1822]"
+                            : "border-[#172635] bg-[#0b1219] hover:border-[#2a4154] hover:bg-[#0e1822] hover:shadow-[0_14px_26px_rgba(0,0,0,0.14)]"
                       }`}
                     >
                       <span
@@ -241,8 +258,11 @@ export function RoutingPage() {
                           />
                         ) : (
                           <div className="min-w-0 pl-1.5">
-                            <b className="block truncate font-mono text-sm text-[var(--color-text)]">{row.from}</b>
-                            <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-[#263746] bg-[#071019] px-2 py-0.5 text-[10px] text-[var(--color-muted)]">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <b className="block truncate font-mono text-sm text-[var(--color-text)]">{row.from}</b>
+                              {selected ? <Badge variant="good">当前预览</Badge> : null}
+                            </div>
+                            <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-[#263746] bg-[#071019] px-2 py-0.5 text-[10px] tracking-wide text-[var(--color-muted)]">
                               Client model
                             </span>
                           </div>
@@ -282,7 +302,7 @@ export function RoutingPage() {
                       <EditableCell label="状态">
                         <Badge variant={st[0]}>{st[1]}</Badge>
                       </EditableCell>
-                      <div className="flex flex-wrap justify-start gap-1.5 lg:justify-end">
+                      <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
                         {editing ? (
                           <>
                             <Button variant="good" className="px-2.5 py-1.5 text-xs" onClick={() => saveInlineEdit(row.from)}>
@@ -305,7 +325,7 @@ export function RoutingPage() {
                           <>
                             <Button
                               variant={selected ? "good" : "mini"}
-                              className={selected ? "px-2.5 py-1 text-xs" : undefined}
+                              className={selected ? "px-2.5 py-1 text-xs shadow-[0_0_0_1px_rgba(52,211,153,0.18)]" : undefined}
                               onClick={() => (selected ? setPreviewKey("") : previewRow(row.from))}
                             >
                               {selected ? "收起预览" : "预览"}
@@ -377,9 +397,32 @@ export function RoutingPage() {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[18px] border border-[#263746] bg-[#091018] p-3">
-      <label className="text-[11px] tracking-wide text-[var(--color-weak)] uppercase">{label}</label>
-      <strong className="mt-2 block truncate text-lg">{value}</strong>
+    <div className="rounded-[20px] border border-[#223343] bg-[linear-gradient(180deg,rgba(9,16,24,0.95),rgba(7,12,18,0.88))] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <label className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-weak)]">{label}</label>
+      <strong className="mt-2 block truncate text-[22px] font-semibold leading-none text-[var(--color-text)]">{value}</strong>
+    </div>
+  );
+}
+
+function RouteGuide({
+  title,
+  desc,
+  tone,
+}: {
+  title: string;
+  desc: string;
+  tone: "flow" | "accent" | "muted";
+}) {
+  const style =
+    tone === "flow"
+      ? "border-[rgba(61,214,198,0.22)] bg-[linear-gradient(180deg,rgba(61,214,198,0.09),rgba(8,16,24,0.92))]"
+      : tone === "accent"
+        ? "border-[rgba(232,163,23,0.22)] bg-[linear-gradient(180deg,rgba(232,163,23,0.08),rgba(8,16,24,0.92))]"
+        : "border-[#1b2a38] bg-[linear-gradient(180deg,rgba(11,18,25,0.96),rgba(8,13,19,0.92))]";
+  return (
+    <div className={`rounded-[18px] border px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${style}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--color-weak)]">{title}</p>
+      <p className="mt-2 text-xs leading-relaxed text-[var(--color-muted)]">{desc}</p>
     </div>
   );
 }
@@ -400,7 +443,7 @@ function EmptyAliasState({ onAdd }: { onAdd: () => void }) {
 function EditableCell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
-      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-[var(--color-weak)] lg:hidden">{label}</span>
+      <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-weak)] lg:hidden">{label}</span>
       {children}
     </div>
   );
@@ -437,6 +480,9 @@ function ModelPicker({
         placeholder="或直接输入自定义上游模型"
         className="py-2 font-mono"
       />
+      <p className="text-[11px] leading-relaxed text-[var(--color-muted)]">
+        下拉会始终展示当前账号池下已配置的全部模型，不需要先清空输入框；下面这一行用于手动覆盖成自定义上游模型。
+      </p>
     </div>
   );
 }
@@ -464,7 +510,7 @@ function AddAliasDialog({
       title="新增模型映射"
       description="新增只负责创建一条明确映射；已有映射请直接在列表行内编辑。"
     >
-      <div className="space-y-3">
+      <div className="space-y-4">
         <Field label="客户端模型名">
           <Input
             value={draft.from}
@@ -534,7 +580,7 @@ function RoutePreviewPanel({
   const updating = query.isFetching && !!query.data;
   return (
     <div
-      className={`overflow-hidden rounded-[20px] border border-[rgba(61,214,198,0.26)] bg-[radial-gradient(circle_at_0%_0%,rgba(61,214,198,0.12),transparent_34%),#060a0e] shadow-[0_14px_34px_rgba(0,0,0,0.22)] ${
+      className={`overflow-hidden rounded-[22px] border border-[rgba(61,214,198,0.26)] bg-[radial-gradient(circle_at_0%_0%,rgba(61,214,198,0.14),transparent_34%),#060a0e] shadow-[0_14px_34px_rgba(0,0,0,0.22)] ${
         compact ? "mx-1 animate-fade-in" : "min-h-[152px]"
       }`}
     >
@@ -594,8 +640,8 @@ function RoutePreviewBody({
 
 function PreviewLine({ label, value, emphasis }: { label: string; value: string; emphasis?: boolean }) {
   return (
-    <div className="grid gap-1 rounded-[12px] border border-[#132333] bg-[#081018] px-3 py-2 sm:grid-cols-[92px_1fr]">
-      <span className="text-[var(--color-weak)]">{label}</span>
+    <div className="grid gap-1 rounded-[14px] border border-[#132333] bg-[linear-gradient(180deg,rgba(8,16,24,0.95),rgba(7,13,18,0.9))] px-3 py-2.5 sm:grid-cols-[92px_1fr]">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-weak)]">{label}</span>
       <span className={`min-w-0 break-words ${emphasis ? "text-[var(--color-flow)]" : "text-[#d4e0ea]"}`}>{value}</span>
     </div>
   );

@@ -35,6 +35,7 @@ export interface FormKeyRow {
   label: string;
   key: string;
   base_url: string;
+  priority?: number;
   scheduler?: ProviderAccountRuntime;
   revealed?: boolean;
   secret?: string;
@@ -89,6 +90,7 @@ interface ConfigContextValue {
   addOrUpdateAlias: (row: Omit<AliasRow, "raw">, replaceFrom?: string) => void;
   deleteAlias: (from: string) => void;
   discoverModels: (pid: ProviderId) => Promise<ProviderModelsResult>;
+  getProviderDraft: (pid: ProviderId) => ConfigPayload["providers"][ProviderId];
   syncDiscoveredToProvider: (pid: ProviderId) => number;
   modelsForProvider: (pid: ProviderId) => string[];
   validateProvider: (id: ProviderId) => [("good" | "warn" | "bad"), string][];
@@ -109,9 +111,10 @@ function providerFromSnapshot(p: ProviderState | undefined, meta: { base: string
         label: k.label || "",
         key: k.key || "",
         base_url: k.base_url || k.scheduler?.base_url || p?.base_url || meta.base,
+        priority: Number(k.priority || 0) || 0,
         scheduler: k.scheduler,
       }))
-    : [{ id: "", masked: "", enabled: true, label: "primary", key: "", base_url: p?.base_url || meta.base }];
+    : [{ id: "", masked: "", enabled: true, label: "primary", key: "", base_url: p?.base_url || meta.base, priority: 0 }];
   return {
     enabled: !!p?.enabled,
     base_url: p?.base_url || meta.base,
@@ -195,9 +198,15 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           label: k.label.trim(),
           key: k.key.trim(),
           base_url: k.base_url.trim(),
+          priority: Number(k.priority || 0) || 0,
         })),
     }),
     [form.providers],
+  );
+
+  const getProviderDraft = useCallback(
+    (pid: ProviderId) => collectProvider(pid),
+    [collectProvider],
   );
 
   const collectPayload = useCallback((): ConfigPayload => {
@@ -238,8 +247,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       const hasMasked = rows.some((k) => isMasked(k.key));
       const hasPlain = rows.some((k) => k.key && !isMasked(k.key));
       const checks: [("good" | "warn" | "bad"), string][] = [];
-      if (p.enabled && !p.base_url) checks.push(["bad", "账号池必须填写默认 Base URL"]);
-      if (p.enabled && rows.some((k) => !k.base_url)) checks.push(["bad", "启用账号必须填写 Base URL"]);
+      const missingEffectiveBaseUrl = enabledRows.some((k) => !k.base_url && !p.base_url);
+      if (p.enabled && missingEffectiveBaseUrl) {
+        checks.push(["bad", "启用账号必须填写自己的 Base URL，或继承账号池默认 Base URL"]);
+      }
       if (p.enabled && !p.models) checks.push(["bad", "启用账号池必须填写至少一个真实上游模型"]);
       if (p.enabled && !enabledRows.length && !hasMasked) {
         checks.push(["bad", "启用账号池至少需要一个启用状态的账号/key"]);
@@ -389,11 +400,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   const discoverModels = useCallback(async (pid: ProviderId) => {
     const r = await api<ProviderModelsResult>("/admin/api/provider-models", {
       method: "POST",
-      body: JSON.stringify({ provider: pid }),
+      body: JSON.stringify({ provider: pid, draft: getProviderDraft(pid) }),
     });
     setDiscoveredModels((d) => ({ ...d, [pid]: r.models || [] }));
     return r;
-  }, []);
+  }, [getProviderDraft]);
 
   const syncDiscoveredToProvider = useCallback(
     (pid: ProviderId) => {
@@ -494,6 +505,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     addOrUpdateAlias,
     deleteAlias,
     discoverModels,
+    getProviderDraft,
     syncDiscoveredToProvider,
     modelsForProvider,
     validateProvider,
