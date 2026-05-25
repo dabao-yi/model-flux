@@ -1,6 +1,6 @@
 {
   "name": "model-flux",
-  "version": "2.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "ModelFlux: health-aware OpenAI-compatible model traffic router with key-pool scheduling and failover",
   "workspaces": [
