@@ -36,7 +36,7 @@ export function OpsPage() {
     for (let i = 0; i < 12; i++) {
       try {
         const h = await api<HealthPayload>("/health");
-        log(`健康状态：${h.status}\n供应商：${(h.providers || []).join(",")}\n默认：${h.default_provider}`);
+        log(`健康状态：${h.status}\n账号池：${(h.providers || []).join(",")}\n默认：${h.default_provider}`);
         toast.success("服务已恢复");
         return;
       } catch {
@@ -60,7 +60,7 @@ export function OpsPage() {
         }),
       });
       log(
-        `测试${r.ok ? "成功" : "未通过"}\n请求模型：${r.model}\n上游模型：${r.upstream_model || "-"}\n供应商：${r.provider}\n回答：${String(r.text || "").slice(0, 200)}`,
+        `测试${r.ok ? "成功" : "未通过"}\n请求模型：${r.model}\n上游模型：${r.upstream_model || "-"}\n账号池：${r.provider}\n回答：${String(r.text || "").slice(0, 200)}`,
       );
       toast.success(r.ok ? "测试成功" : "测试未通过");
     } catch (e) {

@@ -1,4 +1,4 @@
-import { normalizeModelId, parseCsv, parseKeyPool, type KeyPoolRow } from "../lib/utils.js";
+import { normalizeBaseUrl, normalizeModelId, parseCsv, parseKeyPool, type KeyPoolRow } from "../lib/utils.js";
 import { configureLogging } from "../lib/log.js";
 import { loadProxyKeyTable } from "../auth/proxy-auth.js";
 import { createResponseStore, type ResponseStore } from "../store/response-store.js";
@@ -110,15 +110,20 @@ export function initAppContext(): AppContext {
     if (catalog.openai.length) openaiModels = [...catalog.openai];
   }
 
-  const deepseekKeys = parseKeyPool(process.env.DEEPSEEK_API_KEY || "", process.env.DEEPSEEK_API_KEYS || "");
-  const mimoKeys = parseKeyPool(process.env.MIMO_API_KEY || "", process.env.MIMO_API_KEYS || "");
-  const compatKeys = parseKeyPool(process.env.COMPAT_API_KEY || "", process.env.COMPAT_API_KEYS || "");
-  const openaiKeys = parseKeyPool(process.env.OPENAI_API_KEY || "", process.env.OPENAI_API_KEYS || "");
+  const deepseekBase = normalizeBaseUrl(process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1");
+  const mimoBase = normalizeBaseUrl(process.env.MIMO_BASE_URL || "https://token-plan-cn.xiaomimimo.com/v1");
+  const compatBase = normalizeBaseUrl(process.env.COMPAT_BASE_URL || "");
+  const openaiBase = normalizeBaseUrl(process.env.OPENAI_BASE_URL || "https://api.openai.com/v1");
+
+  const deepseekKeys = parseKeyPool(process.env.DEEPSEEK_API_KEY || "", process.env.DEEPSEEK_API_KEYS || "", deepseekBase);
+  const mimoKeys = parseKeyPool(process.env.MIMO_API_KEY || "", process.env.MIMO_API_KEYS || "", mimoBase);
+  const compatKeys = parseKeyPool(process.env.COMPAT_API_KEY || "", process.env.COMPAT_API_KEYS || "", compatBase);
+  const openaiKeys = parseKeyPool(process.env.OPENAI_API_KEY || "", process.env.OPENAI_API_KEYS || "", openaiBase);
   const accountScheduler = createAccountScheduler();
 
   const oaiCompatProviders: Record<string, OaiCompatProviderConfig> = {
     deepseek: {
-      base: process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com/v1",
+      base: deepseekBase,
       key: deepseekKeys[0]?.key || "",
       keys: deepseekKeys,
       keyCursor: 0,
@@ -127,7 +132,7 @@ export function initAppContext(): AppContext {
       envKey: "DEEPSEEK_API_KEY",
     },
     mimo: {
-      base: process.env.MIMO_BASE_URL || "https://token-plan-cn.xiaomimimo.com/v1",
+      base: mimoBase,
       key: mimoKeys[0]?.key || "",
       keys: mimoKeys,
       keyCursor: 0,
@@ -136,7 +141,7 @@ export function initAppContext(): AppContext {
       envKey: "MIMO_API_KEY",
     },
     compat: {
-      base: process.env.COMPAT_BASE_URL || "",
+      base: compatBase,
       key: compatKeys[0]?.key || "",
       keys: compatKeys,
       keyCursor: 0,
@@ -147,7 +152,6 @@ export function initAppContext(): AppContext {
   };
 
   const openaiKey = openaiKeys[0]?.key || "";
-  const openaiBase = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
   const openaiModelPrefixes = parseCsv(process.env.OPENAI_MODEL_PREFIXES || "gpt-,o1,o3,o4,codex-,chatgpt-");
   const defaultProvider = (process.env.DEFAULT_PROVIDER || "").trim().toLowerCase();
 
@@ -230,7 +234,7 @@ export function initAppContext(): AppContext {
     } else {
       const cfg = oaiCompatProviders[name];
       if (!cfg) {
-        const err = new Error(`未知供应商: ${name}`) as Error & { statusCode?: number };
+        const err = new Error(`未知账号池: ${name}`) as Error & { statusCode?: number };
         err.statusCode = 400;
         throw err;
       }

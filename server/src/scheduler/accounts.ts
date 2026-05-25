@@ -24,6 +24,7 @@ export interface ProviderAccount {
   provider: string;
   key: string;
   masked: string;
+  base_url: string;
   enabled: boolean;
   state: ProviderAccountState;
   weight: number;
@@ -184,6 +185,7 @@ export class AccountScheduler {
       existing.key = row.key;
       existing.label = row.label || existing.label;
       existing.masked = maskSecret(row.key);
+      existing.base_url = row.base_url || existing.base_url || "";
       existing.enabled = row.enabled !== false;
       if (existing.enabled && existing.state === "manual_disabled") existing.state = "healthy";
       if (!existing.enabled) existing.state = "manual_disabled";
@@ -195,6 +197,7 @@ export class AccountScheduler {
       key: row.key,
       label: row.label || "primary",
       masked: maskSecret(row.key),
+      base_url: row.base_url || "",
       enabled: row.enabled !== false,
       state: row.enabled === false ? "manual_disabled" : "healthy",
       weight: 1,
@@ -400,6 +403,7 @@ export class AccountScheduler {
       label: acc.label,
       provider: acc.provider,
       masked: acc.masked,
+      base_url: acc.base_url,
       enabled: acc.enabled,
       state: acc.state,
       weight: acc.weight,

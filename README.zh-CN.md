@@ -10,7 +10,7 @@ ModelFlux 是一个本地模型流量路由，面向 Codex、CLIProxyAPI、sub2a
 - **Chat Completions 适配**：将 Responses 请求转换为上游 `/chat/completions` 请求，并把非流式/流式结果转换回 Responses 结构。
 - **模型路由与别名**：用 `MODEL_ALIASES` 把客户端模型名映射到真实上游模型，例如 `gpt-5.5=mimo:mimo-v2-pro`。
 - **健康感知账号池调度**：只调度健康 key；余额不足、认证异常、限流、超时、5xx 会自动分类、冷却、探测恢复。
-- **管理台**：`/admin` 可维护供应商、key 池、模型映射、入站鉴权、链路测试和运行状态。
+- **管理台**：`/admin` 可维护账号池、key、独立 Base URL、模型映射、入站鉴权、链路测试和运行状态。
 - **前置代理友好**：ModelFlux 不绑定某个固定链路；直连、CLIProxyAPI、sub2api 或其它 OpenAI-compatible 前置代理都可以把上游指向 ModelFlux。
 
 ## 支持的接入形态
@@ -192,7 +192,7 @@ OPENAI_MODEL=gpt-5.5
 
 ### 管理台鉴权弹窗
 
-访问 `http://127.0.0.1:19090/admin` 时，如果 `.env` 中配置了 `ADMIN_AUTH_KEY`，页面会在首次加载管理 API 时弹出“管理鉴权”。这是正常保护机制，用来避免未授权用户读取配置、查看账号池状态、测试供应商 key 或触发重启。
+访问 `http://127.0.0.1:19090/admin` 时，如果 `.env` 中配置了 `ADMIN_AUTH_KEY`，页面会在首次加载管理 API 时弹出“管理鉴权”。这是正常保护机制，用来避免未授权用户读取配置、查看账号池状态、测试账号 key 或触发重启。
 
 获取当前管理口令：
 
@@ -212,20 +212,22 @@ docker compose restart
 
 不要把 `ADMIN_ENABLED` 设为 `0` 来规避弹窗；那会禁用管理 API，管理台大部分功能将不可用。发布、局域网访问或反代到公网前，建议重新设置强 `ADMIN_AUTH_KEY`。
 
-### 上游供应商
+### 上游账号池
 
-| 供应商 | Key | Base URL | Models |
+| 账号池 | Key | 默认 Base URL | Models |
 |---|---|---|---|
 | MIMO | `MIMO_API_KEY` / `MIMO_API_KEYS` | `MIMO_BASE_URL` | `MIMO_MODELS` |
 | DeepSeek | `DEEPSEEK_API_KEY` / `DEEPSEEK_API_KEYS` | `DEEPSEEK_BASE_URL` | `DEEPSEEK_MODELS` |
 | OpenAI-compatible | `COMPAT_API_KEY` / `COMPAT_API_KEYS` | `COMPAT_BASE_URL` | `COMPAT_MODELS` |
 | OpenAI 原生 | `OPENAI_API_KEY` / `OPENAI_API_KEYS` | `OPENAI_BASE_URL` | `OPENAI_MODELS` |
 
-`*_API_KEYS` 支持多个 key：
+`*_API_KEYS` 支持多个 key，也支持给单个 key 指定独立 Base URL：
 
 ```bash
-MIMO_API_KEYS=sk-key-2|backup|enabled,sk-key-3|old|disabled
+MIMO_API_KEYS=key-2|backup|enabled|https://region-a.example/v1,key-3|old|disabled|https://region-b.example/v1
 ```
+
+格式：`key|label|enabled`、`key|label|disabled`，或 `key|label|enabled|base_url`。不写第 4 段时使用账号池默认 Base URL。
 
 ### 模型别名
 
@@ -236,7 +238,7 @@ MODEL_ALIASES=gpt-5.5=mimo:mimo-v2-pro,gpt-5.4=mimo:mimo-v2-pro
 路由优先级：
 
 1. `MODEL_ALIASES` 明确映射
-2. 供应商模型列表精确命中
+2. 账号池模型列表精确命中
 3. 模型名称提示，例如包含 `mimo` 或 `deepseek`
 4. `OPENAI_MODEL_PREFIXES`
 5. `DEFAULT_PROVIDER`

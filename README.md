@@ -192,7 +192,7 @@ OPENAI_MODEL=gpt-5.5
 
 ### Admin authentication prompt
 
-When opening `http://127.0.0.1:19090/admin`, the UI shows an admin authentication dialog if `.env` contains `ADMIN_AUTH_KEY`. This is expected: it protects configuration, upstream key-pool status, provider-key tests, and restart operations.
+When opening `http://127.0.0.1:19090/admin`, the UI shows an admin authentication dialog if `.env` contains `ADMIN_AUTH_KEY`. This is expected: it protects configuration, upstream account-pool status, account-key tests, and restart operations.
 
 Read the current admin key locally:
 
@@ -212,20 +212,22 @@ docker compose restart
 
 Do not set `ADMIN_ENABLED=0` just to hide the prompt; that disables the admin API and most console features. Set a strong `ADMIN_AUTH_KEY` again before LAN, reverse-proxy, or public exposure.
 
-### Upstream providers
+### Upstream account pools
 
-| Provider | Key | Base URL | Models |
+| Account pool | Key | Default Base URL | Models |
 |---|---|---|---|
 | MIMO | `MIMO_API_KEY` / `MIMO_API_KEYS` | `MIMO_BASE_URL` | `MIMO_MODELS` |
 | DeepSeek | `DEEPSEEK_API_KEY` / `DEEPSEEK_API_KEYS` | `DEEPSEEK_BASE_URL` | `DEEPSEEK_MODELS` |
 | OpenAI-compatible | `COMPAT_API_KEY` / `COMPAT_API_KEYS` | `COMPAT_BASE_URL` | `COMPAT_MODELS` |
 | Native OpenAI | `OPENAI_API_KEY` / `OPENAI_API_KEYS` | `OPENAI_BASE_URL` | `OPENAI_MODELS` |
 
-Multiple keys are supported:
+`*_API_KEYS` supports multiple keys and optional per-key Base URL:
 
 ```bash
-MIMO_API_KEYS=sk-key-2|backup|enabled,sk-key-3|old|disabled
+MIMO_API_KEYS=key-2|backup|enabled|https://region-a.example/v1,key-3|old|disabled|https://region-b.example/v1
 ```
+
+Format: `key|label|enabled`, `key|label|disabled`, or `key|label|enabled|base_url`. If the fourth segment is omitted, the account uses the pool default Base URL.
 
 ## Scheduler
 

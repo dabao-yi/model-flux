@@ -291,7 +291,6 @@ export async function handleOaiCompatResponses(
   chatReq.model = ctx.resolveUpstreamModel(provider, chatReq.model as string);
   const isStream = !!chatReq.stream;
 
-  const upstreamUrl = `${cfg.base}/chat/completions`;
   const routeLabel = `${provider}(${chatReq.model})`;
 
   let hardBreakerFired = false;
@@ -322,7 +321,7 @@ export async function handleOaiCompatResponses(
       const loopResult = await runWebFetchLoop({
         baseRequest: chatReq,
         initialMessages: chatReq.messages as unknown[],
-        upstreamUrl,
+        upstreamUrl: `${account.base_url || cfg.base}/chat/completions`,
         upstreamKey: account.key,
         signal: c.req.raw.signal,
       });
@@ -359,7 +358,7 @@ export async function handleOaiCompatResponses(
     provider,
     async (account) => {
       const response = await upstreamFetch(
-        upstreamUrl,
+        `${account.base_url || cfg.base}/chat/completions`,
         {
           method: "POST",
           headers: {
@@ -466,7 +465,7 @@ export async function handleOaiCompatChatCompletions(
       const loopResult = await runWebFetchLoop({
         baseRequest: body,
         initialMessages: body.messages as unknown[],
-        upstreamUrl: `${cfg.base}/chat/completions`,
+        upstreamUrl: `${account.base_url || cfg.base}/chat/completions`,
         upstreamKey: account.key,
         prefix: "cc",
         signal: c.req.raw.signal,
@@ -513,7 +512,7 @@ export async function handleOaiCompatChatCompletions(
     provider,
     async (account) => {
       const response = await upstreamFetch(
-        `${cfg.base}/chat/completions`,
+        `${account.base_url || cfg.base}/chat/completions`,
         {
           method: "POST",
           headers: {

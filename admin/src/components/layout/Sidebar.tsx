@@ -17,7 +17,7 @@ import type { HealthPayload } from "@/types/config";
 
 const configLinks = [
   { to: "/", label: "总览", icon: LayoutDashboard, end: true },
-  { to: "/providers", label: "供应商", icon: Server },
+  { to: "/providers", label: "账号池", icon: Server },
   { to: "/routing", label: "模型路由", icon: GitBranch },
   { to: "/auth", label: "鉴权", icon: Shield },
 ];

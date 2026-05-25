@@ -2,6 +2,8 @@ import path from "node:path";
 import type { Context } from "hono";
 import {
   maskSecret,
+  normalizeBaseUrl,
+  normalizeConfigNewlines,
   parseCsv,
   parseKeyPoolAll,
   publicBaseFromReq,
@@ -26,20 +28,23 @@ export function providerEnvFromPayload(
   const up = prefix.toUpperCase();
   const out: Record<string, string> = {};
   if (!provider) return out;
-  out[`${up}_BASE_URL`] = (provider.base_url as string) || "";
+  const defaultBaseUrl = normalizeBaseUrl(provider.base_url);
+  out[`${up}_BASE_URL`] = defaultBaseUrl;
   out[`${up}_MODELS`] = Array.isArray(provider.models)
     ? (provider.models as string[]).join(",")
     : String(provider.models || "");
 
   const fileEnv = parseEnvFile();
+  const existingDefaultBaseUrl = defaultBaseUrl || normalizeBaseUrl(fileEnv[`${up}_BASE_URL`] ?? process.env[`${up}_BASE_URL`] ?? "");
   const existing = parseKeyPoolAll(
     fileEnv[`${up}_API_KEY`] ?? process.env[`${up}_API_KEY`] ?? "",
     fileEnv[`${up}_API_KEYS`] ?? process.env[`${up}_API_KEYS`] ?? "",
+    existingDefaultBaseUrl,
   );
   const existingById = new Map(existing.map((row) => [row.id, row]));
   const existingByMasked = new Map(existing.map((row) => [maskSecret(row.key), row]));
   const rows = Array.isArray(provider.keys) ? (provider.keys as Record<string, unknown>[]) : [];
-  const resolved: { key: string; label: string; enabled: boolean }[] = [];
+  const resolved: { key: string; label: string; enabled: boolean; base_url: string }[] = [];
   const seen = new Set<string>();
 
   rows.forEach((row, i) => {
@@ -50,12 +55,15 @@ export function providerEnvFromPayload(
       key = existingById.get(id)?.key || existingByMasked.get(key)?.key || existingByMasked.get(masked)?.key || "";
     }
     key = String(key || "").trim();
-    if (!key || seen.has(key)) return;
-    seen.add(key);
+    const baseUrl = normalizeBaseUrl(row?.base_url) || existingById.get(id)?.base_url || existingByMasked.get(masked)?.base_url || defaultBaseUrl;
+    const dedupeKey = `${key}|${baseUrl}`;
+    if (!key || seen.has(dedupeKey)) return;
+    seen.add(dedupeKey);
     resolved.push({
       key,
       label: String(row?.label || "").trim() || `key-${i + 1}`,
       enabled: provider.enabled !== false && row?.enabled !== false,
+      base_url: baseUrl,
     });
   });
 
@@ -67,7 +75,7 @@ export function providerEnvFromPayload(
   const disabled = resolved.filter((row) => row.enabled === false);
   out[`${up}_API_KEY`] = enabled[0]?.key || "";
   const poolRows = [...enabled.slice(1), ...disabled];
-  out[`${up}_API_KEYS`] = poolRows.map(encodeKeyPoolEntry).filter(Boolean).join(",");
+  out[`${up}_API_KEYS`] = poolRows.map((row) => encodeKeyPoolEntry(row, defaultBaseUrl)).filter(Boolean).join(",");
   return out;
 }
 
@@ -79,14 +87,15 @@ export function activeConfigSnapshot(ctx: AppContext, { reveal = false } = {}) {
     const upper = name.toUpperCase();
     const primary = pick(`${upper}_API_KEY`);
     const pool = pick(`${upper}_API_KEYS`);
-    const allKeys = parseKeyPoolAll(primary, pool);
+    const baseUrl = normalizeBaseUrl(pick(`${upper}_BASE_URL`, defaults.base));
+    const allKeys = parseKeyPoolAll(primary, pool, baseUrl);
     const enabledKeys = allKeys.filter((k) => k.enabled !== false);
     const runtimeRows = ctx.accountScheduler.snapshot(name)[name] || [];
     const runtimeById = new Map(runtimeRows.map((row) => [row.id, row]));
     return {
       id: name,
       enabled: enabledKeys.length > 0,
-      base_url: pick(`${upper}_BASE_URL`, defaults.base),
+      base_url: baseUrl,
       models: parseCsv(pick(`${upper}_MODELS`, defaults.models)).join(","),
       key_count: enabledKeys.length,
       total_key_count: allKeys.length,
@@ -97,6 +106,7 @@ export function activeConfigSnapshot(ctx: AppContext, { reveal = false } = {}) {
         enabled: k.enabled !== false,
         key: reveal ? k.key : maskSecret(k.key),
         masked: maskSecret(k.key),
+        base_url: k.base_url || baseUrl,
         scheduler:
           runtimeById.get(k.id) ||
           ({
@@ -104,6 +114,7 @@ export function activeConfigSnapshot(ctx: AppContext, { reveal = false } = {}) {
             label: k.label,
             provider: name,
             masked: maskSecret(k.key),
+            base_url: k.base_url || baseUrl,
             enabled: k.enabled !== false,
             state: k.enabled === false ? "manual_disabled" : "healthy",
             schedulable: k.enabled !== false,
@@ -123,10 +134,10 @@ export function activeConfigSnapshot(ctx: AppContext, { reveal = false } = {}) {
       primary_key: reveal ? primary : maskSecret(primary),
       key_pool: reveal
         ? pool
-        : parseKeyPoolAll("", pool)
+        : parseKeyPoolAll("", pool, baseUrl)
             .map(
               (k) =>
-                `${maskSecret(k.key)}${k.label ? "|" + k.label : ""}|${k.enabled === false ? "disabled" : "enabled"}`,
+                `${maskSecret(k.key)}${k.label ? "|" + k.label : ""}|${k.enabled === false ? "disabled" : "enabled"}${k.base_url && k.base_url !== baseUrl ? "|" + k.base_url : ""}`,
             )
             .join(","),
     };
@@ -152,7 +163,7 @@ export function activeConfigSnapshot(ctx: AppContext, { reveal = false } = {}) {
     },
     routing: {
       default_provider: pick("DEFAULT_PROVIDER"),
-      model_aliases: pick("MODEL_ALIASES"),
+      model_aliases: normalizeConfigNewlines(pick("MODEL_ALIASES")),
       openai_model_prefixes: pick("OPENAI_MODEL_PREFIXES", "gpt-,o1,o3,o4,codex-,chatgpt-"),
     },
     providers: {

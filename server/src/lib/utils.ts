@@ -26,9 +26,21 @@ export function normalizeModelId(model: unknown): string {
   return String(model || "").trim().toLowerCase();
 }
 
-export function splitConfigList(value: unknown): string[] {
+export function normalizeConfigNewlines(value: unknown): string {
   return String(value || "")
-    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    // Admin writes .env values through JSON.stringify when quoting is needed.
+    // Older builds read quoted values by only stripping quotes, so every save
+    // could double the backslashes in MODEL_ALIASES: \n -> \\n -> ... .
+    // Treat any run of backslashes immediately followed by n as a logical
+    // newline for list-like config fields. This repairs old polluted values and
+    // prevents route aliases from keeping literal backslashes as model suffixes.
+    .replace(/\\+n/g, "\n");
+}
+
+export function splitConfigList(value: unknown): string[] {
+  return normalizeConfigNewlines(value)
     .split(/[\n,;]+/)
     .map((x) => x.trim())
     .filter(Boolean);
@@ -44,12 +56,23 @@ export function keyFingerprint(value: unknown): string {
   return crypto.createHash("sha256").update(key).digest("hex").slice(0, 16);
 }
 
-export function encodeKeyPoolEntry(row: { key?: string; label?: string; enabled?: boolean }): string {
+export function normalizeBaseUrl(value: unknown): string {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
+
+export function encodeKeyPoolEntry(
+  row: { key?: string; label?: string; enabled?: boolean; base_url?: string },
+  defaultBaseUrl = "",
+): string {
   const key = String(row?.key || "").trim();
   if (!key) return "";
   const label = String(row?.label || "").trim() || "key";
   const status = row?.enabled === false ? "disabled" : "enabled";
-  return `${key}|${label}|${status}`;
+  const baseUrl = normalizeBaseUrl(row?.base_url);
+  const fallback = normalizeBaseUrl(defaultBaseUrl);
+  const parts = [key, label, status];
+  if (baseUrl && baseUrl !== fallback) parts.push(baseUrl);
+  return parts.join("|");
 }
 
 export interface KeyPoolRow {
@@ -58,36 +81,41 @@ export interface KeyPoolRow {
   label: string;
   enabled: boolean;
   source: string;
+  base_url?: string;
 }
 
-export function parseKeyPoolAll(primary: unknown, pool: unknown): KeyPoolRow[] {
+export function parseKeyPoolAll(primary: unknown, pool: unknown, defaultBaseUrl = ""): KeyPoolRow[] {
   const out: KeyPoolRow[] = [];
   const seen = new Set<string>();
-  const add = (value: unknown, label = "", enabled = true, source = "pool") => {
+  const fallbackBaseUrl = normalizeBaseUrl(defaultBaseUrl);
+  const add = (value: unknown, label = "", enabled = true, source = "pool", baseUrl = "") => {
     const key = String(value || "").trim();
     if (!key || seen.has(key)) return;
     seen.add(key);
+    const normalizedBaseUrl = normalizeBaseUrl(baseUrl) || fallbackBaseUrl;
     out.push({
       id: keyFingerprint(key),
       key,
       label: label || `key-${out.length + 1}`,
       enabled: enabled !== false,
       source,
+      base_url: normalizedBaseUrl,
     });
   };
-  add(primary, "primary", true, "primary");
+  add(primary, "primary", true, "primary", fallbackBaseUrl);
   for (const item of parseCsv(pool)) {
     const parts = item.split("|");
     const key = (parts[0] || "").trim();
     const label = (parts[1] || "").trim();
     const enabled = parts.length >= 3 ? !isDisabledFlag(parts[2]) : true;
-    add(key, label, enabled, "pool");
+    const baseUrl = parts.length >= 4 ? parts.slice(3).join("|").trim() : "";
+    add(key, label, enabled, "pool", baseUrl);
   }
   return out;
 }
 
-export function parseKeyPool(primary: unknown, pool: unknown): KeyPoolRow[] {
-  return parseKeyPoolAll(primary, pool).filter((row) => row.enabled !== false);
+export function parseKeyPool(primary: unknown, pool: unknown, defaultBaseUrl = ""): KeyPoolRow[] {
+  return parseKeyPoolAll(primary, pool, defaultBaseUrl).filter((row) => row.enabled !== false);
 }
 
 export function uid(): string {

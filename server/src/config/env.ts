@@ -74,6 +74,20 @@ export const SENSITIVE_ENV_KEYS = new Set([
   "ADMIN_AUTH_KEY",
 ]);
 
+export function parseEnvValue(rawValue: string): string {
+  const val = rawValue.trim();
+  if (val.startsWith('"') && val.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(val) as unknown;
+      return String(parsed ?? "");
+    } catch {
+      return val.slice(1, -1);
+    }
+  }
+  if (val.startsWith("'") && val.endsWith("'")) return val.slice(1, -1);
+  return val;
+}
+
 export function parseEnvFile(filePath: string = CONFIG_ENV_PATH): Record<string, string> {
   const out: Record<string, string> = {};
   let raw = "";
@@ -88,14 +102,7 @@ export function parseEnvFile(filePath: string = CONFIG_ENV_PATH): Record<string,
     const idx = line.indexOf("=");
     if (idx === -1) continue;
     const key = line.slice(0, idx).trim();
-    let val = line.slice(idx + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
-      val = val.slice(1, -1);
-    }
-    out[key] = val;
+    out[key] = parseEnvValue(line.slice(idx + 1));
   }
   return out;
 }

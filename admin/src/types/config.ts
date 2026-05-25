@@ -6,6 +6,7 @@ export interface ProviderKeyRow {
   key?: string;
   masked?: string;
   enabled?: boolean;
+  base_url?: string;
   scheduler?: ProviderAccountRuntime;
 }
 
@@ -64,6 +65,7 @@ export interface ProviderAccountRuntime {
   provider: string;
   masked?: string;
   enabled: boolean;
+  base_url?: string;
   state: ProviderAccountState;
   weight?: number;
   in_flight?: number;
@@ -115,6 +117,7 @@ export interface ConfigPayload {
         enabled: boolean;
         label: string;
         key: string;
+        base_url: string;
       }[];
     }
   >;

@@ -39,7 +39,7 @@ export function ModelsPage() {
           </div>
         ) : (
           <p className="rounded-[12px] border border-dashed border-[var(--color-line)] py-8 text-center text-sm text-[var(--color-warn)]">
-            当前运行时没有可用模型，请先配置供应商并重启 ModelFlux
+            当前运行时没有可用模型，请先配置账号池并重启 ModelFlux
           </p>
         )}
       </Section>

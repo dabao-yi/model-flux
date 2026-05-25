@@ -8,7 +8,7 @@ import {
 import type { KeyPoolRow } from "../lib/utils.js";
 
 function row(id: string, label = id, enabled = true): KeyPoolRow {
-  return { id, label, enabled, key: `sk-${id}`, source: "pool" };
+  return { id, label, enabled, key: `sk-${id}`, source: "pool", base_url: `https://${id}.example/v1` };
 }
 
 function failure(partial: Partial<AccountFailureClassification> = {}): AccountFailureClassification {
@@ -68,6 +68,16 @@ describe("AccountScheduler", () => {
     expect(s.dueProbeAccounts()).toHaveLength(0);
     expect(s.select("mimo")).toBeNull();
   });
+
+  it("keeps per-account Base URL in runtime snapshots", () => {
+    const s = createAccountScheduler();
+    s.syncProvider("mimo", [row("a")]);
+    const selected = s.select("mimo");
+    expect(selected?.base_url).toBe("https://a.example/v1");
+    s.release(selected);
+    expect(s.snapshot("mimo").mimo[0].base_url).toBe("https://a.example/v1");
+  });
+
 });
 
 describe("upstream error classification", () => {

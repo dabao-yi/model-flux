@@ -18,7 +18,7 @@ import {
 import { CONFIG_ENV_PATH, writeManagedEnv } from "./config/env.js";
 import { log, isAccessLogOn } from "./lib/log.js";
 import { initUpstreamFetch, upstreamFetch } from "./lib/upstream-fetch.js";
-import { maskSecret } from "./lib/utils.js";
+import { maskSecret, normalizeConfigNewlines } from "./lib/utils.js";
 import { pickProxyKeyForProvider } from "./routing/models.js";
 import { classifyUpstreamException, classifyUpstreamResponse } from "./scheduler/accounts.js";
 import { normalizeInputToArray } from "./translate/messages.js";
@@ -85,8 +85,9 @@ function healthPayload() {
   };
 }
 
-function providerBase(provider: string): string {
+function providerBase(provider: string, accountBaseUrl = ""): string {
   const appCtx = getAppContext();
+  if (accountBaseUrl) return accountBaseUrl;
   if (provider === "openai") return appCtx.openaiBase;
   return appCtx.oaiCompatProviders[provider]?.base || "";
 }
@@ -124,7 +125,7 @@ async function probeProviderAccount(
     appCtx.accountScheduler.markProbing(provider, id);
   }
 
-  const base = providerBase(provider).replace(/\/+$/, "");
+  const base = providerBase(provider, account.base_url).replace(/\/+$/, "");
   if (!base) {
     const err = new Error(`${provider} 没有配置 Base URL。`) as Error & { statusCode?: number };
     err.statusCode = 400;
@@ -244,7 +245,7 @@ app.post("/admin/api/config", async (c) => {
     ...(maskedValue(inbound?.proxy_keys) ? {} : { PROXY_KEYS: inbound?.proxy_keys || "" }),
     ...(maskedValue(inbound?.admin_auth_key) ? {} : { ADMIN_AUTH_KEY: inbound?.admin_auth_key || "" }),
     DEFAULT_PROVIDER: routing?.default_provider || "",
-    MODEL_ALIASES: routing?.model_aliases || "",
+    MODEL_ALIASES: normalizeConfigNewlines(routing?.model_aliases || ""),
     OPENAI_MODEL_PREFIXES: routing?.openai_model_prefixes || "",
     LOG_LEVEL: (tuning?.log_level as string) || "info",
     ACCESS_LOG: tuning?.access_log === false || tuning?.access_log === "0" ? "0" : "1",
@@ -437,7 +438,7 @@ app.post("/admin/api/test", async (c) => {
     return c.json(
       {
         error: {
-          message: `供应商 ${requestedProvider} 尚未在运行时启用。请先保存配置并重启 ModelFlux 后再测试。`,
+          message: `账号池 ${requestedProvider} 尚未在运行时启用。请先保存配置并重启 ModelFlux 后再测试。`,
           code: "provider_not_enabled",
         },
       },

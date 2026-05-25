@@ -273,11 +273,11 @@ export function findProviderKey(
   provider: string,
   id: string,
   pickEnv: (key: string) => string,
-  parseKeyPoolAll: (primary: string, pool: string) => KeyPoolRow[],
+  parseKeyPoolAll: (primary: string, pool: string, defaultBaseUrl?: string) => KeyPoolRow[],
 ): KeyPoolRow | null {
   const name = String(provider || "").trim().toLowerCase();
   const upper = name.toUpperCase();
-  const rows = parseKeyPoolAll(pickEnv(`${upper}_API_KEY`), pickEnv(`${upper}_API_KEYS`));
+  const rows = parseKeyPoolAll(pickEnv(`${upper}_API_KEY`), pickEnv(`${upper}_API_KEYS`), pickEnv(`${upper}_BASE_URL`));
   const wanted = String(id || "").trim();
   return rows.find((row) => row.id === wanted) || null;
 }

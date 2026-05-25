@@ -69,7 +69,7 @@ export async function forwardOpenAIResponses(
     "openai",
     async (account) => {
       const response = await upstreamFetch(
-        `${ctx.openaiBase}/responses`,
+        `${account.base_url || ctx.openaiBase}/responses`,
         {
           method: "POST",
           headers: {
@@ -139,7 +139,7 @@ export async function forwardOpenAIChatCompletions(
     "openai",
     async (account) => {
       const response = await upstreamFetch(
-        `${ctx.openaiBase}/chat/completions`,
+        `${account.base_url || ctx.openaiBase}/chat/completions`,
         {
           method: "POST",
           headers: {

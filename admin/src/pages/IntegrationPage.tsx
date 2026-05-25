@@ -178,10 +178,16 @@ function CopyLine({ label, display, onCopy }: { label: string; display: string; 
 }
 
 async function copyField(value: string | undefined, label: string) {
-  try {
-    await copyText(value || "", label);
-    toast.success(`已复制 ${label}`);
-  } catch {
+  if (!value) {
     toast.error(`${label} 不存在`);
+    return;
+  }
+
+  try {
+    await copyText(value, label);
+    toast.success(`已复制 ${label}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "复制失败";
+    toast.error(message);
   }
 }

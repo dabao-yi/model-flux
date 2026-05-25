@@ -1,5 +1,5 @@
 import { PROVIDERS } from "@/lib/providers";
-import { normModel, splitModels } from "@/lib/utils";
+import { normModel, normalizeConfigNewlines, splitModels } from "@/lib/utils";
 import type { ProviderId } from "@/types/config";
 
 export interface AliasRow {
@@ -22,7 +22,7 @@ export function parseAliasEntries(
   const duplicates: string[] = [];
   const seen = new Set<string>();
 
-  String(text ?? "")
+  normalizeConfigNewlines(text)
     .split(/[\n,;]+/)
     .map((x) => x.trim())
     .filter(Boolean)
@@ -67,7 +67,7 @@ export function aliasRowStatus(
   discovered: Record<string, string[]>,
 ): ["good" | "warn" | "bad", string] {
   const cfg = getProviderCfg(row.provider as ProviderId);
-  if (!cfg.enabled) return ["bad", "供应商未启用"];
+  if (!cfg.enabled) return ["bad", "账号池未启用"];
   const configured = splitModels(cfg.models).map(normModel);
   const target = normModel(row.upstream_model);
   if (configured.includes(target)) return ["good", "已匹配 Models"];
@@ -79,11 +79,11 @@ export function aliasRowStatus(
 
 export const REASON_LABELS: Record<string, string> = {
   MODEL_ALIASES: "明确映射优先命中",
-  "provider model list": "请求模型就是供应商真实模型",
+  "provider model list": "请求模型就是账号池真实模型",
   "name hint": "根据模型名关键词判断",
   "OpenAI prefix": "OpenAI 前缀命中",
-  DEFAULT_PROVIDER: "未命中映射，走默认供应商",
-  "first enabled provider": "无默认供应商，走第一个启用供应商",
+  DEFAULT_PROVIDER: "未命中映射，走默认账号池",
+  "first enabled provider": "无默认账号池，走第一个启用账号池",
   fallback: "兜底路由",
 };
 

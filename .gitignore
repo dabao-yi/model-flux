@@ -12,3 +12,5 @@ admin/dist/
 *.bak-*
 
 .idea/
+
+.playwright-cli/

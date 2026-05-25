@@ -51,7 +51,7 @@ export function DashboardPage() {
               让客户端 / 前置代理共用一个 <span className="text-gradient-brand">模型流量入口</span>
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-[var(--color-muted)]">
-              管理供应商密钥、模型路由与鉴权。保存写入本地 <code className="font-mono text-[var(--color-flow)]">.env</code>，重启后生效。
+              管理账号池密钥、模型路由与鉴权。保存写入本地 <code className="font-mono text-[var(--color-flow)]">.env</code>，重启后生效。
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button variant="primary" onClick={() => saveAndRestart()}>
@@ -64,7 +64,7 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:min-w-[280px]">
-            <Metric label="运行供应商" value={(rt?.enabled_providers || []).join(", ") || "none"} />
+            <Metric label="运行账号池" value={(rt?.enabled_providers || []).join(", ") || "none"} />
             <Metric label="模型数" value={String(rt?.model_count ?? "—")} accent />
             <Metric label="可调度账号" value={String(scheduler?.schedulable_accounts ?? "—")} accent />
             <Metric label="异常账号" value={String(scheduler?.abnormal_accounts ?? "—")} warn={(scheduler?.abnormal_accounts || 0) > 0} />
@@ -108,7 +108,7 @@ export function DashboardPage() {
       <FluxDiagram />
 
       <div className="grid gap-4 md:grid-cols-3 animate-fade-in-delay-2">
-        <QuickLink to="/providers" title="配置供应商" desc="Key 池、Base URL、模型发现" />
+        <QuickLink to="/providers" title="配置账号池" desc="Key 池、Base URL、模型发现" />
         <QuickLink to="/routing" title="模型映射" desc="别名规则与路由预览" />
         <QuickLink to="/integration" title="接入客户端" desc="Codex / CLIProxyAPI / sub2api / CPA" />
       </div>

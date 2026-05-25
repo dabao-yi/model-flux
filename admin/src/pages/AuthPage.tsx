@@ -14,7 +14,7 @@ export function AuthPage() {
       <PageHeader
         step="03"
         title="入站鉴权"
-        hint="这里是客户端或前置代理调用 ModelFlux 的 key，不是供应商原始 key。"
+        hint="这里是客户端或前置代理调用 ModelFlux 的 key，不是账号池原始 key。"
       />
       <Section>
         <div className="grid gap-3 md:grid-cols-2">

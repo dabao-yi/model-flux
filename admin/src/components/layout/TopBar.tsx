@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const titles: Record<string, string> = {
   "/": "总览",
-  "/providers": "供应商账号池",
+  "/providers": "账号池",
   "/routing": "模型路由",
   "/auth": "入站鉴权",
   "/integration": "接入说明",

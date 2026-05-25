@@ -18,7 +18,7 @@ import {
 } from "@/lib/aliases";
 import { api } from "@/lib/api";
 import { PROVIDERS } from "@/lib/providers";
-import { isMasked, normModel, splitModels } from "@/lib/utils";
+import { isMasked, normModel, normalizeConfigNewlines, splitModels } from "@/lib/utils";
 import type {
   ConfigPayload,
   ConfigSnapshot,
@@ -34,6 +34,7 @@ export interface FormKeyRow {
   enabled: boolean;
   label: string;
   key: string;
+  base_url: string;
   scheduler?: ProviderAccountRuntime;
   revealed?: boolean;
   secret?: string;
@@ -107,9 +108,10 @@ function providerFromSnapshot(p: ProviderState | undefined, meta: { base: string
         enabled: k.enabled !== false,
         label: k.label || "",
         key: k.key || "",
+        base_url: k.base_url || k.scheduler?.base_url || p?.base_url || meta.base,
         scheduler: k.scheduler,
       }))
-    : [{ id: "", masked: "", enabled: true, label: "primary", key: "" }];
+    : [{ id: "", masked: "", enabled: true, label: "primary", key: "", base_url: p?.base_url || meta.base }];
   return {
     enabled: !!p?.enabled,
     base_url: p?.base_url || meta.base,
@@ -125,7 +127,7 @@ function initialForm(snapshot: ConfigSnapshot | null) {
   return {
     providers,
     defaultProvider: snapshot?.routing?.default_provider || "",
-    modelAliases: snapshot?.routing?.model_aliases || "",
+    modelAliases: normalizeConfigNewlines(snapshot?.routing?.model_aliases || ""),
     openaiPrefixes:
       snapshot?.routing?.openai_model_prefixes || "gpt-,o1,o3,o4,codex-,chatgpt-",
     proxyAuth: snapshot?.inbound?.proxy_auth_key || "",
@@ -192,6 +194,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
           enabled: k.enabled,
           label: k.label.trim(),
           key: k.key.trim(),
+          base_url: k.base_url.trim(),
         })),
     }),
     [form.providers],
@@ -202,7 +205,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       providers: Object.fromEntries(PROVIDERS.map((p) => [p.id, collectProvider(p.id)])) as ConfigPayload["providers"],
       routing: {
         default_provider: form.defaultProvider,
-        model_aliases: form.modelAliases.trim(),
+        model_aliases: normalizeConfigNewlines(form.modelAliases).trim(),
         openai_model_prefixes: form.openaiPrefixes.trim(),
       },
       inbound: {
@@ -235,10 +238,11 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       const hasMasked = rows.some((k) => isMasked(k.key));
       const hasPlain = rows.some((k) => k.key && !isMasked(k.key));
       const checks: [("good" | "warn" | "bad"), string][] = [];
-      if (p.enabled && !p.base_url) checks.push(["bad", "启用供应商必须填写 Base URL"]);
-      if (p.enabled && !p.models) checks.push(["bad", "启用供应商必须填写至少一个真实上游模型"]);
+      if (p.enabled && !p.base_url) checks.push(["bad", "账号池必须填写默认 Base URL"]);
+      if (p.enabled && rows.some((k) => !k.base_url)) checks.push(["bad", "启用账号必须填写 Base URL"]);
+      if (p.enabled && !p.models) checks.push(["bad", "启用账号池必须填写至少一个真实上游模型"]);
       if (p.enabled && !enabledRows.length && !hasMasked) {
-        checks.push(["bad", "启用供应商至少需要一个启用状态的 key"]);
+        checks.push(["bad", "启用账号池至少需要一个启用状态的账号/key"]);
       }
       if (hasPlain && hasMasked) {
         checks.push(["warn", "混合明文和脱敏 key 可以保存；已有脱敏 key 会按内部 ID 保留"]);
@@ -249,7 +253,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       if (!checks.length) {
         checks.push([
           p.enabled ? "good" : "good",
-          p.enabled ? `可用：${enabledRows.length || "已有"} 个 key 参与轮询` : "供应商未启用，key 会保留但不参与路由",
+          p.enabled ? `可用：${enabledRows.length || "已有"} 个账号参与轮询` : "账号池未启用，账号会保留但不参与路由",
         ]);
       }
       return checks;

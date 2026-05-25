@@ -126,7 +126,7 @@ export function RoutingPage() {
       <PageHeader
         step="02"
         title="模型路由"
-        hint="把客户端请求的模型名，明确映射到某个供应商和真实上游模型。"
+        hint="把客户端请求的模型名，明确映射到某个账号池和真实上游模型。"
         actions={
           <Button variant="primary" onClick={openAdd}>
             <Plus className="size-4" />
@@ -138,8 +138,8 @@ export function RoutingPage() {
       <div className="grid gap-2.5 md:grid-cols-3">
         {[
           ["1", "先看明确映射", "如 gpt-5.5 = mimo:mimo-v2-pro"],
-          ["2", "再看真实模型直连", "请求模型在供应商 Models 里则直连"],
-          ["3", "最后走默认供应商", "未命中时走 DEFAULT_PROVIDER"],
+          ["2", "再看真实模型直连", "请求模型在账号池 Models 里则直连"],
+          ["3", "最后走默认账号池", "未命中时走 DEFAULT_PROVIDER"],
         ].map(([no, title, desc]) => (
           <div
             key={no}
@@ -163,7 +163,7 @@ export function RoutingPage() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="DEFAULT_PROVIDER（未命中时的兜底供应商）">
+        <Field label="DEFAULT_PROVIDER（未命中时的兜底账号池）">
           <Select
             value={cfg.form.defaultProvider || ""}
             onValueChange={(v) => cfg.setRouting({ defaultProvider: v })}
@@ -203,7 +203,7 @@ export function RoutingPage() {
           <div className="overflow-hidden rounded-[22px] border border-[#223343] bg-[#071019]/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <div className="hidden grid-cols-[1fr_0.72fr_1.15fr_120px_210px] gap-2 border-b border-[#1b2a38] bg-[linear-gradient(90deg,rgba(232,163,23,0.08),rgba(61,214,198,0.06),transparent)] px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-weak)] lg:grid">
               <span>客户端模型</span>
-              <span>供应商</span>
+              <span>账号池</span>
               <span>上游模型</span>
               <span>状态</span>
               <span className="text-right">操作</span>
@@ -248,7 +248,7 @@ export function RoutingPage() {
                           </div>
                         )}
                       </EditableCell>
-                      <EditableCell label="供应商">
+                      <EditableCell label="账号池">
                         {editing ? (
                           <Select
                             value={draft.provider}
@@ -472,7 +472,7 @@ function AddAliasDialog({
             placeholder="例如 gpt-5.5"
           />
         </Field>
-        <Field label="供应商">
+        <Field label="账号池">
           <Select
             value={draft.provider}
             onValueChange={(v) => onDraftChange((d) => ({ ...d, provider: v as ProviderId, upstream_model: "" }))}
@@ -580,7 +580,7 @@ function RoutePreviewBody({
     <div className="grid gap-2">
       <PreviewLine label="请求模型" value={d.requested_model || probe} />
       <PreviewLine label="命中规则" value={`${d.reason}（${reasonText}）`} />
-      <PreviewLine label="路由供应商" value={`${providerTitle} (${d.provider})`} />
+      <PreviewLine label="路由账号池" value={`${providerTitle} (${d.provider})`} />
       <PreviewLine label="上游模型" value={d.upstream_model || "-"} emphasis />
       {query.isPlaceholderData ? (
         <p className="pt-1 text-[var(--color-warn)]">正在获取当前映射结果，先保留上一条稳定结果。</p>
@@ -604,7 +604,7 @@ function PreviewLine({ label, value, emphasis }: { label: string; value: string;
 function validateDraft(draft: AliasDraft, duplicate: boolean) {
   if (!draft.from.trim()) return "请填写客户端模型名";
   if (!draft.upstream_model.trim()) return "请填写上游模型";
-  if (!draft.provider) return "请选择供应商";
+  if (!draft.provider) return "请选择账号池";
   if (duplicate) return "客户端模型名已存在，请直接编辑现有行";
   return "";
 }

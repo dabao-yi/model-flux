@@ -20,8 +20,8 @@ export function ProvidersPage() {
     <div>
       <PageHeader
         step="01"
-        title="供应商账号池"
-        hint="供应商启用表示允许路由到它；每个 key 也可以独立启用/停用。停用 key 不会删除密钥，保存后它会保留在配置里但不会参与轮询。"
+        title="账号池"
+        hint="账号池启用表示允许路由到它；每个账号/key 都有独立 Base URL，可独立启用、停用、测试和探测。停用账号不会删除密钥，保存后会保留但不参与轮询。"
       />
       <div className="grid gap-4 xl:grid-cols-2 [&>*]:min-w-0">
         {PROVIDERS.map((meta) => (
@@ -56,7 +56,7 @@ function ProviderCard({ id }: { id: ProviderId }) {
   const addKey = () => {
     setProviderKeys(id, [
       ...p.keys,
-      { id: "", masked: "", enabled: true, label: `key-${p.keys.length + 1}`, key: "" },
+      { id: "", masked: "", enabled: true, label: `key-${p.keys.length + 1}`, key: "", base_url: p.base_url },
     ]);
   };
 
@@ -84,11 +84,11 @@ function ProviderCard({ id }: { id: ProviderId }) {
 
       <label className="mb-3 flex items-center gap-2 text-sm text-[var(--color-muted)]">
         <Switch checked={p.enabled} onCheckedChange={(v) => setProvider(id, { enabled: v })} />
-        启用该供应商路由
+        启用该账号池路由
       </label>
 
       <div className="grid min-w-0 gap-3 2xl:grid-cols-2">
-        <Field label="Base URL">
+        <Field label="默认 Base URL（新账号默认值）">
           <Input value={p.base_url} onChange={(e) => setProvider(id, { base_url: e.target.value })} />
         </Field>
         <Field label="Models（真实上游模型，逗号分隔）">
@@ -99,9 +99,9 @@ function ProviderCard({ id }: { id: ProviderId }) {
       <div className="mt-2 flex flex-wrap gap-2">
         <Button
           variant="mini"
-          onClick={() => copyText(p.base_url, `${meta.title} Base URL`).then(() => toast.success("已复制"))}
+          onClick={() => copyText(p.base_url, `${meta.title} 默认 Base URL`).then(() => toast.success("已复制"))}
         >
-          复制 Base URL
+          复制默认 Base URL
         </Button>
         <Button variant="mini" onClick={() => discoverModels(id).then((r) => toast.message(r.ok ? "模型列表已刷新" : "模型发现失败"))}>
           发现模型
@@ -149,6 +149,7 @@ function ProviderCard({ id }: { id: ProviderId }) {
               row={row}
               providerId={id}
               model={p.models.split(",").map((x) => x.trim()).filter(Boolean)[0] || ""}
+              defaultBaseUrl={p.base_url}
               onChange={(patch) => updateKey(i, patch)}
               onRemove={() => removeKey(i)}
             />
@@ -161,7 +162,7 @@ function ProviderCard({ id }: { id: ProviderId }) {
           + 添加 key
         </Button>
         <Button variant="mini" onClick={() => testProvider(id, p.models)}>
-          测试供应商
+          测试账号池
         </Button>
       </div>
 
@@ -176,18 +177,21 @@ function KeyRow({
   row,
   providerId,
   model,
+  defaultBaseUrl,
   onChange,
   onRemove,
 }: {
   row: FormKeyRow;
   providerId: ProviderId;
   model: string;
+  defaultBaseUrl: string;
   onChange: (p: Partial<FormKeyRow>) => void;
   onRemove: () => void;
 }) {
   const [revealed, setRevealed] = useState(false);
   const [busy, setBusy] = useState(false);
   const scheduler = row.scheduler;
+  const effectiveBaseUrl = row.base_url || scheduler?.base_url || defaultBaseUrl;
 
   const revealKey = async () => {
     if (revealed) {
@@ -272,7 +276,7 @@ function KeyRow({
 
   return (
     <div className="min-w-0 overflow-hidden rounded-[16px] border border-[#223343] bg-[#0b1219] p-2.5">
-      <div className="grid min-w-0 gap-2 xl:grid-cols-[72px_minmax(120px,0.75fr)_minmax(180px,1fr)] 2xl:grid-cols-[72px_minmax(130px,0.75fr)_minmax(180px,1fr)_auto] 2xl:items-center">
+      <div className="grid min-w-0 gap-2 xl:grid-cols-[72px_minmax(120px,0.75fr)_minmax(180px,1fr)] 2xl:grid-cols-[72px_minmax(130px,0.65fr)_minmax(180px,1fr)_minmax(220px,1fr)_auto] 2xl:items-center">
         <label className="flex min-w-0 items-center gap-2 text-xs text-[var(--color-muted)]">
           <input type="checkbox" checked={row.enabled} onChange={(e) => onChange({ enabled: e.target.checked })} />
           启用
@@ -280,9 +284,16 @@ function KeyRow({
         <Input className="min-w-0 text-sm" placeholder="label" value={row.label} onChange={(e) => onChange({ label: e.target.value })} />
         <Input
           className="min-w-0 font-mono text-xs"
-          placeholder="sk-..."
+          placeholder="key / token"
           value={row.key}
           onChange={(e) => onChange({ key: e.target.value })}
+        />
+        <Input
+          className="min-w-0 font-mono text-xs"
+          placeholder={defaultBaseUrl || "https://api.example.com/v1"}
+          value={row.base_url || ""}
+          onChange={(e) => onChange({ base_url: e.target.value })}
+          title="该账号独立 Base URL；留空时请先填默认 Base URL"
         />
         <div className="flex min-w-0 flex-wrap gap-1 xl:col-span-3 2xl:col-span-1 2xl:justify-end">
           <Button variant="mini" onClick={revealKey}>
@@ -299,6 +310,9 @@ function KeyRow({
 
       <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 border-t border-[#172635] pt-2 text-xs text-[var(--color-muted)]">
         <AccountStateBadge state={scheduler?.state} schedulable={scheduler?.schedulable} enabled={row.enabled} />
+        <span className="min-w-0 basis-full truncate font-mono text-[var(--color-weak)]" title={effectiveBaseUrl}>
+          Base URL: {effectiveBaseUrl || "未配置"}
+        </span>
         <span className="shrink-0">成功 {scheduler?.success_count ?? 0}</span>
         <span className="shrink-0">失败 {scheduler?.failure_count ?? 0}</span>
         <span className="shrink-0">并发 {scheduler?.in_flight ?? 0}</span>
@@ -387,8 +401,8 @@ async function testProvider(id: ProviderId, models: string) {
         }),
       },
     );
-    toast.success(r.ok ? "供应商测试成功" : "供应商测试未通过");
+    toast.success(r.ok ? "账号池测试成功" : "账号池测试未通过");
   } catch {
-    toast.error("供应商测试失败");
+    toast.error("账号池测试失败");
   }
 }
