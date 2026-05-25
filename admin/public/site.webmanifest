@@ -1,0 +1,36 @@
+{
+  "name": "ModelFlux Console",
+  "short_name": "ModelFlux",
+  "description": "ModelFlux 模型流量路由控制台",
+  "start_url": "/admin/",
+  "display": "standalone",
+  "background_color": "#0f141c",
+  "theme_color": "#0f141c",
+  "icons": [
+    {
+      "src": "/admin/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/admin/apple-touch-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/admin/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/admin/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/admin/assets/favicon-D2HkmnL0.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

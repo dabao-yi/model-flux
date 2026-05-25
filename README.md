@@ -1,8 +1,33 @@
-# ModelFlux
+<p align="center">
+  <img src="./docs/assets/og-card.png" alt="ModelFlux OG Card" width="100%" />
+</p>
 
-ModelFlux is a health-aware model traffic router for Codex, CLIProxyAPI, sub2api, CPA, and other OpenAI-compatible clients or front proxies. It exposes a reusable OpenAI-compatible entry point and routes requests to MIMO, DeepSeek, native OpenAI, or other Chat Completions upstreams.
+<h1 align="center">ModelFlux</h1>
 
-It is designed for one clear boundary: **clients or front proxies use one ModelFlux endpoint, protocol conversion stays in one place, upstream keys are managed inside ModelFlux, and unhealthy upstream accounts are isolated automatically.**
+<p align="center">
+  Health-aware OpenAI-compatible model traffic router for Codex, CLIProxyAPI, sub2api, CPA, and other front proxies.
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> ·
+  <a href="#quick-start">Quick Start</a> ·
+  <a href="#docker">Docker</a> ·
+  <a href="#integration-examples">Integration</a> ·
+  <a href="./README.zh-CN.md">中文说明</a>
+</p>
+
+> ModelFlux provides one reusable OpenAI-compatible entry point. Clients or front proxies point to ModelFlux, protocol adaptation stays in one place, upstream account pools stay inside ModelFlux, and unhealthy upstream accounts are isolated and recovered automatically.
+
+## Why ModelFlux
+
+- One stable OpenAI-compatible entry point for multiple clients or front proxies
+- Health-aware account-pool scheduling with cooldown, probing, failover, and recovery
+- Admin console for account pools, routing, auth, tests, and restart operations
+- Friendly to direct usage, CLIProxyAPI, sub2api, CPA, and other compatible chains
+
+## Console preview
+
+![ModelFlux Admin Console](./docs/assets/console-providers.png)
 
 ## Features
 
@@ -25,6 +50,12 @@ OpenAI-compatible client / CPA -> ModelFlux -> upstream provider
 ```
 
 ModelFlux owns inbound auth, model aliases, protocol adaptation, upstream account scheduling, and recovery probes. Codex, CLIProxyAPI, and sub2api are optional entry points or front proxies.
+
+## Brand assets
+
+- Social preview card: `./docs/assets/og-card.png`
+- Editable vector source: `./docs/assets/og-card.svg`
+- Latest admin console screenshot: `./docs/assets/console-providers.png`
 
 ## Quick start
 

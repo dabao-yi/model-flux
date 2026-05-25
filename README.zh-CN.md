@@ -1,8 +1,33 @@
-# ModelFlux
+<p align="center">
+  <img src="./docs/assets/og-card.png" alt="ModelFlux 分享图" width="100%" />
+</p>
 
-ModelFlux 是一个本地模型流量路由，面向 Codex、CLIProxyAPI、sub2api、CPA 以及其它 OpenAI-compatible 客户端 / 前置代理提供统一入口，并把请求路由到 MIMO、DeepSeek、OpenAI 原生或其它 Chat Completions 上游。
+<h1 align="center">ModelFlux</h1>
 
-它的定位是：**客户端入口统一、协议转换集中、上游账号池独立管理、异常账号自动隔离与恢复**。
+<p align="center">
+  面向 Codex、CLIProxyAPI、sub2api、CPA 以及其它 OpenAI-compatible 客户端 / 前置代理的健康感知模型流量路由。
+</p>
+
+<p align="center">
+  <a href="#核心能力">核心能力</a> ·
+  <a href="#快速开始">快速开始</a> ·
+  <a href="#docker-运行">Docker 运行</a> ·
+  <a href="#接入方式">接入方式</a> ·
+  <a href="./README.md">English</a>
+</p>
+
+> ModelFlux 的定位很明确：把客户端入口统一成一个可复用的 OpenAI-compatible 端点，把协议适配、账号池调度、故障隔离和恢复探测都收敛在同一个位置。
+
+## 为什么是 ModelFlux
+
+- 给多个客户端 / 前置代理提供统一稳定的 OpenAI-compatible 接入点
+- 账号池具备健康调度、冷却、探测、故障切换与自动恢复能力
+- 管理台可维护账号池、模型路由、鉴权、测试与重启
+- 可直连，也适合 CLIProxyAPI、sub2api、CPA 等前置链路
+
+## 管理台预览
+
+![ModelFlux 管理台截图](./docs/assets/console-providers.png)
 
 ## 核心能力
 
@@ -25,6 +50,12 @@ OpenAI-compatible client / CPA -> ModelFlux -> upstream provider
 ```
 
 ModelFlux 统一负责入站鉴权、模型别名、协议适配、上游账号池调度和异常账号恢复；Codex、CLIProxyAPI、sub2api 只是可选的入口或前置代理。
+
+## 品牌与文档素材
+
+- 分享图：`./docs/assets/og-card.png`
+- 可编辑矢量源：`./docs/assets/og-card.svg`
+- 最新管理台截图：`./docs/assets/console-providers.png`
 
 ## 快速开始
 

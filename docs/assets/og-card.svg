@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b0f15"/>
+      <stop offset="0.55" stop-color="#111827"/>
+      <stop offset="1" stop-color="#07131d"/>
+    </linearGradient>
+    <linearGradient id="line" x1="264" y1="190" x2="430" y2="190" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8A317"/>
+      <stop offset="1" stop-color="#3DD6C6"/>
+    </linearGradient>
+    <linearGradient id="logoBg" x1="0" y1="0" x2="166" y2="166" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A2332"/>
+      <stop offset="1" stop-color="#0F141C"/>
+    </linearGradient>
+    <filter id="blurCard" x="0" y="0" width="1200" height="630" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="50"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g opacity="0.65" filter="url(#blurCard)">
+    <circle cx="980" cy="120" r="170" fill="#0ea5a4" fill-opacity="0.16"/>
+    <circle cx="210" cy="560" r="180" fill="#E8A317" fill-opacity="0.10"/>
+    <circle cx="760" cy="520" r="140" fill="#3b82f6" fill-opacity="0.12"/>
+  </g>
+  <rect x="66" y="56" width="1068" height="518" rx="34" fill="rgba(10,15,23,0.66)" stroke="rgba(148,163,184,0.16)"/>
+  <rect x="92" y="84" width="166" height="166" rx="34" fill="url(#logoBg)"/>
+  <path d="M126 190H159L192 140L225 240L258 190H291" stroke="url(#line)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="192" cy="190" r="16" fill="#E8A317"/>
+
+  <text x="302" y="126" fill="#7dd3fc" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="26" font-weight="700" letter-spacing="4">MODELFLUX CONSOLE</text>
+  <text x="302" y="208" fill="#F8FAFC" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="72" font-weight="800">ModelFlux</text>
+  <text x="302" y="260" fill="#CBD5E1" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="28" font-weight="500">健康感知的模型流量路由控制台</text>
+
+  <text x="94" y="336" fill="#94A3B8" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="22" font-weight="600">支持接入形态</text>
+  <text x="94" y="386" fill="#F8FAFC" font-family="'IBM Plex Mono','SFMono-Regular',monospace" font-size="28">Codex -&gt; ModelFlux -&gt; Upstream</text>
+  <text x="94" y="428" fill="#E2E8F0" font-family="'IBM Plex Mono','SFMono-Regular',monospace" font-size="24">CLIProxyAPI / sub2api / CPA / OpenAI-compatible clients</text>
+
+  <g>
+    <rect x="94" y="470" width="244" height="58" rx="18" fill="rgba(61,214,198,0.12)" stroke="rgba(61,214,198,0.4)"/>
+    <text x="122" y="507" fill="#86EFDC" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="26" font-weight="700">健康调度 / 自动探测</text>
+  </g>
+  <g>
+    <rect x="362" y="470" width="196" height="58" rx="18" fill="rgba(232,163,23,0.10)" stroke="rgba(232,163,23,0.42)"/>
+    <text x="392" y="507" fill="#FCD34D" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="26" font-weight="700">OpenAI-compatible</text>
+  </g>
+  <g>
+    <rect x="580" y="470" width="192" height="58" rx="18" fill="rgba(96,165,250,0.12)" stroke="rgba(96,165,250,0.35)"/>
+    <text x="612" y="507" fill="#BFDBFE" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="26" font-weight="700">React Admin</text>
+  </g>
+
+  <g opacity="0.95">
+    <rect x="834" y="112" width="246" height="344" rx="24" fill="rgba(15,23,42,0.76)" stroke="rgba(148,163,184,0.16)"/>
+    <text x="866" y="156" fill="#94A3B8" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="20" font-weight="700">管理台亮点</text>
+    <text x="866" y="210" fill="#F8FAFC" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="700">• 账号池与优先级</text>
+    <text x="866" y="254" fill="#F8FAFC" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="700">• 行内路由编辑</text>
+    <text x="866" y="298" fill="#F8FAFC" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="700">• 实时测试 / 探测</text>
+    <text x="866" y="342" fill="#F8FAFC" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="700">• 冷却 / 恢复状态</text>
+    <text x="866" y="386" fill="#F8FAFC" font-family="'Plus Jakarta Sans','PingFang SC','Microsoft YaHei',sans-serif" font-size="24" font-weight="700">• 本机 / 容器接入说明</text>
+  </g>
+</svg>
