@@ -319,3 +319,10 @@ proxy.mjs Compatibility launcher; prefers server/dist/index.js
 - ModelFlux does not modify sub2api source code or database records.
 - Static configuration is kept in `.env`.
 - Runtime account health is kept in memory in this version.
+
+---
+## QQ Group
+![ModelFlux QQ Chat Group](./docs/assets/cc.png)
+
+## Links:
+LINUX DO Community: https://linux.do/
