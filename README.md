@@ -228,7 +228,7 @@ When opening `http://127.0.0.1:19090/admin`, the UI shows an admin authenticatio
 Read the current admin key locally:
 
 ```bash
-cd /Users/tyit-db/personal/AI/project/sub2api-deploy/model-flux
+cd model-flux
 grep '^ADMIN_AUTH_KEY=' .env
 ```
 

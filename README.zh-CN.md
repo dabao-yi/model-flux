@@ -228,7 +228,7 @@ OPENAI_MODEL=gpt-5.5
 获取当前管理口令：
 
 ```bash
-cd /Users/tyit-db/personal/AI/project/sub2api-deploy/model-flux
+cd model-flux
 grep '^ADMIN_AUTH_KEY=' .env
 ```
 

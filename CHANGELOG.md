@@ -17,7 +17,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Changed
 - Productized the admin experience with improved layout, routing interactions, account pool management, and clearer local-vs-container integration instructions.
-- Unified documentation and repository presentation for the first public release under `FLDBDB/model-flux`.
+- Unified documentation and repository presentation for the first public release under `dabao-yi/model-flux`.
 
 ### Fixed
 - Draft-aware account testing and probing now use current page values instead of stale persisted environment values.
