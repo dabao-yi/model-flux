@@ -1,11 +1,20 @@
-import { Agent, fetch as undiciFetch } from "undici";
+import { Agent, ProxyAgent, fetch as undiciFetch } from "undici";
 import { getAppContext } from "../app/context.js";
 
-let dispatcher: Agent | undefined;
+let dispatcher: Agent | ProxyAgent | undefined;
 
 export function initUpstreamFetch() {
   const ctx = getAppContext();
-  if (ctx.useUndiciAgent) {
+  const httpProxy = process.env.HTTP_PROXY || process.env.http_proxy;
+  const httpsProxy = process.env.HTTPS_PROXY || process.env.https_proxy;
+
+  if (httpProxy || httpsProxy) {
+    dispatcher = new ProxyAgent({
+      uri: httpProxy || httpsProxy!,
+      keepAliveTimeout: 300_000,
+      keepAliveMaxTimeout: 300_000,
+    });
+  } else if (ctx.useUndiciAgent) {
     dispatcher = new Agent({
       keepAliveTimeout: 300_000,
       keepAliveMaxTimeout: 300_000,
