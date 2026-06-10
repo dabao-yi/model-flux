@@ -352,8 +352,6 @@ proxy.mjs 兼容启动器，优先使用 server/dist/index.js
 - 账号运行态第一版保存在进程内存中；重启后会重新从 `.env` 初始化并按请求结果重新学习状态。
 
 ---
-## QQ 群
-![ModelFlux QQ交流群](./docs/assets/cc.png)
 
 ## 友链:
 LINUX DO 社区: https://linux.do/
