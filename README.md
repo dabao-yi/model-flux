@@ -321,8 +321,6 @@ proxy.mjs Compatibility launcher; prefers server/dist/index.js
 - Runtime account health is kept in memory in this version.
 
 ---
-## QQ Group
-![ModelFlux QQ Chat Group](./docs/assets/cc.png)
 
 ## Links:
 LINUX DO Community: https://linux.do/
