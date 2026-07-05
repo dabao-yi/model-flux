@@ -47,6 +47,7 @@ export function responsesRequestToChatCompletions(
   body: Record<string, unknown>,
   provider: string,
   responseStore: ResponseStore,
+  originalPreviousResponseId?: string | null,
 ): Record<string, unknown> {
   const messages: ChatMessage[] = [];
 
@@ -61,7 +62,7 @@ export function responsesRequestToChatCompletions(
   }
 
   const reasoningByCallId = new Map<string, string>();
-  if (provider === "deepseek") {
+  if (provider === "deepseek" || provider === "compat") {
     for (const entry of responseStore.values()) {
       if (!entry.reasoningContent) continue;
       for (const out of (entry.output || []) as { type?: string; call_id?: string }[]) {
@@ -211,18 +212,28 @@ export function responsesRequestToChatCompletions(
   applyEffortTranslation(req, reasoning?.effort, provider);
   if (body.parallel_tool_calls != null) req.parallel_tool_calls = body.parallel_tool_calls;
 
-  if (provider === "deepseek" && (req.thinking as { type?: string })?.type !== "disabled") {
-    const hasAssistantToolCalls = (finalMessages as ChatMessage[]).some(
+  if ((provider === "deepseek" || provider === "compat") && (req.thinking as { type?: string })?.type !== "disabled") {
+    let chainHadReasoning = false;
+    if (originalPreviousResponseId) {
+      let cid: string | null | undefined = originalPreviousResponseId;
+      const seen = new Set<string>();
+      while (cid && !seen.has(cid)) {
+        seen.add(cid);
+        const s = responseStore.getStored(cid);
+        if (s?.reasoningContent) { chainHadReasoning = true; break; }
+        cid = s?.previousResponseId ?? undefined;
+      }
+    }
+    const hasAssistantMissingReasoning = (finalMessages as ChatMessage[]).some(
       (m) =>
         m.role === "assistant" &&
-        Array.isArray(m.tool_calls) &&
-        m.tool_calls.length > 0 &&
-        !m.reasoning_content,
+        !m.reasoning_content &&
+        (Array.isArray(m.tool_calls) && m.tool_calls.length > 0 || chainHadReasoning),
     );
-    if (hasAssistantToolCalls) {
+    if (hasAssistantMissingReasoning) {
       req.thinking = { type: "disabled" };
       delete req.reasoning_effort;
-      log.info("[proxy] deepseek: assistant tool_calls without reasoning_content -> forcing thinking:disabled");
+      log.info("[proxy] deepseek: assistant message without reasoning_content -> forcing thinking:disabled");
     }
   }
 

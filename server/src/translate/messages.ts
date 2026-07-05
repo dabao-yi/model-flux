@@ -88,6 +88,29 @@ export function normalizeMessages(
     }
   }
 
+  // Remove orphaned assistant(tc) messages whose tool responses were trimmed
+  const cleaned: ChatMessage[] = [];
+  for (let i = 0; i < validated.length; i++) {
+    const msg = validated[i];
+    if (msg.role === "assistant" && msg.tool_calls && msg.tool_calls.length > 0) {
+      let hasToolResponse = false;
+      for (let j = i + 1; j < validated.length; j++) {
+        if (validated[j].role === "tool") {
+          hasToolResponse = true;
+        } else {
+          break;
+        }
+      }
+      if (hasToolResponse) {
+        cleaned.push(msg);
+      }
+    } else {
+      cleaned.push(msg);
+    }
+  }
+  validated.length = 0;
+  validated.push(...cleaned);
+
   if (coerceStrings) {
     for (const msg of validated) {
       if (msg.role === "assistant" && msg.tool_calls) {

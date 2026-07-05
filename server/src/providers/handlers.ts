@@ -287,7 +287,7 @@ export async function handleOaiCompatResponses(
     }
   }
 
-  const chatReq = responsesRequestToChatCompletions(body, provider, ctx.responseStore);
+  const chatReq = responsesRequestToChatCompletions(body, provider, ctx.responseStore, originalPreviousResponseId);
   chatReq.model = ctx.resolveUpstreamModel(provider, chatReq.model as string);
   const isStream = !!chatReq.stream;
 
